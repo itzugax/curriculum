@@ -66,19 +66,19 @@
             <div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
             
             <label><i class="fas fa-signature"></i> Nombres:</label>
-            <input type="text" id="Nombres" placeholder="Ej: María José" required>
+            <input type="text" id="Nombres" placeholder="Ej: Carmen María" required>
 
             <label><i class="fas fa-signature"></i> Apellidos:</label>
             <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
             <label><i class="fas fa-id-card"></i> Cédula:</label>
-            <input type="text" id="Cedula" placeholder="Ej: 1-2345-6789">
+            <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
 
             <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
             <input type="date" id="FechaNacimiento">
 
             <label><i class="fas fa-map-marker-alt"></i> Dirección:</label>
-            <input type="text" id="Direccion" placeholder="Ej: San José, Costa Rica">
+            <input type="text" id="Direccion" placeholder="Ej: El Pilar, municipio Benítez">
 
             <label><i class="fas fa-venus-mars"></i> Sexo:</label>
             <select id="Sexo" onchange="actualizarDatos()">
@@ -92,19 +92,19 @@
             <select id="EstadoCivil"></select>
 
             <label><i class="fas fa-envelope"></i> Correo electrónico:</label>
-            <input type="email" id="Email" placeholder="Ej: micorreo@example.com">
+            <input type="email" id="Email" placeholder="Ej: micorreo@gmail.com">
 
             <label><i class="fas fa-phone"></i> Teléfono:</label>
-            <input type="tel" id="Telefono" placeholder="Ej: 8888-8888">
+            <input type="tel" id="Telefono" placeholder="Ej: 0412-5681421">
 
             <!-- Sección de educación -->
             <div class="section-title"><i class="fas fa-graduation-cap"></i> Educación</div>
             
             <label><i class="fas fa-school"></i> Primaria:</label>
-            <input type="text" id="EducacionPrimaria" placeholder="Escuela Primaria Completa">
+            <input type="text" id="EducacionPrimaria" placeholder="U.E. Cristobal Colón">
 
             <label><i class="fas fa-school"></i> Secundaria:</label>
-            <input type="text" id="EducacionSecundaria" placeholder="Colegio Secundario Completo">
+            <input type="text" id="EducacionSecundaria" placeholder="L.B. Simon Rodríguez">
 
             <label><i class="fas fa-university"></i> Superior: <span class="add-btn" onclick="agregarCampo('EducacionSuperior')">(+)</span></label>
             <input type="text" id="EducacionSuperior" placeholder="Universidad o Instituto">
