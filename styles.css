@@ -3,6 +3,7 @@ button.close-btn {
     all: unset; /* Reset total */
     box-sizing: border-box;
     
+    
     /* Tamaño fijo */
     width: 32px;
     height: 32px;
@@ -66,6 +67,20 @@ body {
 
 body.preview-active {
     overflow: hidden;
+}
+
+/* Al hover en botones */
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Transición en inputs */
+input, select {
+    transition: all 0.3s ease;
+}
+input:focus {
+    transform: scale(1.02);
 }
 
 /* Agenda lateral */
@@ -145,6 +160,14 @@ body.preview-active {
     max-width: 900px;
     margin: 20px;
 }
+.form-container::before {
+    background: linear-gradient(45deg, 
+        #a1c4fd, 
+        #c2e9fb, 
+        #ff9a9e, 
+        #fad0c4);
+}
+
 
 /* Títulos */
 h2 {
@@ -621,4 +644,39 @@ button.warning:hover {
     .no-print {
         display: none !important;
     }
+}
+.form-container {
+    position: relative;
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(13, 54, 131, 0.589);
+    /* Elimina cualquier borde existente */
+    border: none !important;
+}
+
+/* Borde degradado animado (solo el borde) */
+.form-container::before {
+    content: '';
+    position: absolute;
+    top: -2px; /* Grosor del borde */
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    z-index: -1;
+    background: linear-gradient(45deg, 
+        #3498db, 
+        #1100ff, 
+        #35aeff, 
+        #12f3d5);
+    background-size: 300% 300%;
+    border-radius: 18px; /* Un poco más grande que el contenedor */
+    animation: gradientBorder 5s ease infinite;
+}
+
+/* Animación del degradado */
+@keyframes gradientBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }

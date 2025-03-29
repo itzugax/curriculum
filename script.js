@@ -3,6 +3,23 @@ const { jsPDF } = window.jspdf;
 let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
 
+
+// Seleccionar Poppins por defecto
+document.querySelectorAll('.font-option').forEach(opt => {
+    opt.classList.remove('selected');
+    if (opt.getAttribute('data-font') === "'Poppins', sans-serif") {
+        opt.classList.add('selected');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    actualizarDatos();
+    cargarCVsGuardados();
+    configurarPersonalizacion();
+    
+    // Eliminé la selección específica de Poppins aquí porque ahora está en configurarPersonalizacion()
+});
+
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
@@ -139,10 +156,13 @@ function generarCurriculum() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
     
+    
     if (!nombres || !apellidos) {
         alert("Por favor ingresa al menos tu nombre y apellido");
         return;
+        
     }
+    
 
     // Guardar automáticamente en la agenda
     guardarDatos(false);
