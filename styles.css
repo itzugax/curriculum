@@ -1,0 +1,669 @@
+/* Estilos generales */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #333;
+}
+
+body.preview-active {
+    overflow: hidden;
+}
+
+/* Agenda lateral */
+.agenda-btn {
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.agenda-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+}
+
+.agenda-panel {
+    position: fixed;
+    left: -400px;
+    top: 0;
+    width: 350px;
+    height: 100vh;
+    background: white;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    transition: left 0.3s ease;
+    z-index: 999;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.agenda-panel.open {
+    left: 0;
+}
+
+.agenda-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
+    display: none;
+}
+
+.agenda-overlay.open {
+    display: block;
+}
+
+.agenda-panel h3 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #34495e;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+/* Contenedor principal */
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 900px;
+    margin: 20px;
+}
+
+/* Títulos */
+h2 {
+    text-align: center;
+    color: #2c3e50;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    font-family: 'Dancing Script', cursive;
+}
+
+.section-title {
+    font-size: 22px;
+    margin-top: 25px;
+    color: #34495e;
+    font-weight: 600;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.section-title i {
+    margin-right: 10px;
+}
+
+/* Personalización */
+.customization-panel {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.customization-title {
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.customization-title i {
+    margin-right: 10px;
+    color: #3498db;
+}
+
+.color-options, .font-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.color-option {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected {
+    border-color: #000;
+    transform: scale(1.1);
+}
+
+.font-option {
+    padding: 5px 10px;
+    border-radius: 5px;
+    background: #e0e0e0;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.font-option:hover {
+    background: #d0d0d0;
+}
+
+.font-option.selected {
+    background: #3498db;
+    color: white;
+}
+
+/* Formulario */
+label {
+    font-weight: 500;
+    color: #34495e;
+    display: block;
+    margin-top: 15px;
+}
+
+label i {
+    margin-right: 8px;
+    width: 20px;
+    text-align: center;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    color: #333;
+    transition: border-color 0.3s ease;
+    font-family: inherit;
+}
+
+input:focus, select:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Botones */
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+button {
+    flex: 1;
+    padding: 12px;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+button i {
+    font-size: 18px;
+}
+
+button.primary {
+    background: #3498db;
+}
+
+button.primary:hover {
+    background: #2980b9;
+}
+
+button.danger {
+    background: #e74c3c;
+}
+
+button.danger:hover {
+    background: #c0392b;
+}
+
+/* Botones de agregar/eliminar */
+.add-btn, .remove-btn {
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+}
+
+.add-btn {
+    color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.add-btn:hover {
+    color: white;
+    background: #3498db;
+}
+
+.remove-btn {
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.remove-btn:hover {
+    color: white;
+    background: #e74c3c;
+}
+
+/* Campos dinámicos */
+#EducacionSuperiorCampos input,
+#Habilidades input,
+#Experiencia input,
+#Cursos input {
+    margin-top: 5px;
+}
+
+/* Lista de CVs guardados */
+#savedCvsList {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.saved-cv-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #e0e0e0;
+}
+
+.saved-cv-item-content {
+    flex-grow: 1;
+}
+
+.saved-cv-item-content strong {
+    display: block;
+    color: #2c3e50;
+}
+
+.saved-cv-item-content div {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+}
+
+.delete-cv-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    padding: 0;
+    margin-left: 8px;
+    font-size: 14px;
+}
+
+.delete-cv-btn:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+/* Vista previa de impresión */
+.print-preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1001;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.print-preview-overlay.active {
+    display: flex;
+}
+
+.print-preview-container {
+    background: white;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.print-preview-header {
+    padding: 15px 20px;
+    background: #3498db;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.print-preview-header h3 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.close-btn {
+    background: #e74c3c;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+.print-preview-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.print-preview-actions {
+    padding: 15px 20px;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Estilos para la vista previa del CV */
+.cv-preview {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    background: white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    color: #333;
+    font-family: inherit;
+}
+
+.cv-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid var(--color-principal, #3498db);
+}
+
+.cv-header h1 {
+    color: var(--color-principal, #3498db);
+    margin: 0;
+    font-size: 36px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.contact-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+}
+
+.cv-section {
+    margin-bottom: 30px;
+}
+
+.cv-section h2 {
+    color: var(--color-principal, #3498db);
+    border-bottom: 2px solid var(--color-principal, #3498db);
+    padding-bottom: 5px;
+    font-size: 22px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.cv-section h2 i {
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.personal-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.info-item i {
+    color: var(--color-principal, #3498db);
+    min-width: 20px;
+    text-align: center;
+}
+
+.education-items {
+    display: grid;
+    gap: 15px;
+}
+
+.education-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.education-item i {
+    color: var(--color-principal, #3498db);
+    margin-top: 3px;
+}
+
+ul.experience-list,
+ul.skills-list,
+ul.courses-list {
+    padding-left: 20px;
+    margin: 0;
+}
+
+ul.experience-list li,
+ul.skills-list li,
+ul.courses-list li {
+    margin-bottom: 8px;
+    position: relative;
+}
+
+ul.experience-list li::before,
+ul.skills-list li::before,
+ul.courses-list li::before {
+    content: "•";
+    color: var(--color-principal, #3498db);
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+}
+
+/* Botón de descargar PDF */
+.print-preview-actions .primary {
+    background: var(--color-principal, #3498db);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.print-preview-actions .primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.print-preview-actions .primary i {
+    font-size: 18px;
+}
+
+/* Estilos para impresión */
+@media print {
+    @page {
+        size: letter;
+        margin: 15mm;
+    }
+    
+    body {
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .fa, .fas {
+        font-family: 'Font Awesome 5 Free' !important;
+        font-weight: 900 !important;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Diseño responsivo */
+@media (max-width: 768px) {
+    .form-container {
+        padding: 20px;
+        margin: 10px;
+    }
+
+    h2 {
+        font-size: 28px;
+    }
+
+    .section-title {
+        font-size: 20px;
+    }
+
+    input, select {
+        font-size: 13px;
+    }
+
+    button {
+        font-size: 15px;
+        padding: 10px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .agenda-panel {
+        width: 280px;
+    }
+    
+    .print-preview-container {
+        max-height: 80vh;
+    }
+    
+    .print-preview-actions {
+        flex-direction: column;
+    }
+    
+    .cv-header h1 {
+        font-size: 28px;
+    }
+    
+    .contact-info {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .personal-info {
+        grid-template-columns: 1fr;
+    }
+}
