@@ -17,6 +17,7 @@ const firebaseConfig = {
 // Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
@@ -28,12 +29,49 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fotoPerfil').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
+            // Verificar tamaño (máximo 500KB)
+            if (file.size > 500000) {
+                alert('La imagen es demasiado grande. Use una imagen menor a 500KB');
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = function(event) {
-                fotoPerfilBase64 = event.target.result;
-                const preview = document.getElementById('photoPreview');
-                preview.innerHTML = `<img src="${fotoPerfilBase64}" alt="Foto de perfil">`;
-                preview.style.display = 'block';
+                // Comprimir imagen
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Redimensionar a máximo 300px
+                    const MAX_WIDTH = 300;
+                    const MAX_HEIGHT = 300;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convertir a Base64 con calidad reducida
+                    fotoPerfilBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    const preview = document.getElementById('photoPreview');
+                    preview.innerHTML = `<img src="${fotoPerfilBase64}" alt="Foto de perfil">`;
+                    preview.style.display = 'block';
+                };
             };
             reader.readAsDataURL(file);
         }
@@ -65,6 +103,7 @@ function configurarPersonalizacion() {
             document.querySelectorAll('.font-option').forEach(opt => opt.classList.remove('selected'));
             this.classList.add('selected');
             fuenteSeleccionada = this.getAttribute('data-font');
+            actualizarEstilos();
         });
     });
 }
@@ -569,7 +608,6 @@ async function guardarDatos(mostrarAlerta = true) {
       colorPrincipal,
       fuenteSeleccionada,
       campos: {},
-      fotoPerfil: fotoPerfilBase64,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
   
@@ -577,6 +615,21 @@ async function guardarDatos(mostrarAlerta = true) {
     document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
       if (campo.id) datos.campos[campo.id] = campo.value;
     });
+  
+    // Guardar foto si existe (usando Storage para imágenes grandes)
+    if (fotoPerfilBase64) {
+        try {
+            const storageRef = storage.ref().child(`fotos_perfil/${Date.now()}.jpg`);
+            const response = await storageRef.putString(fotoPerfilBase64.split(',')[1], 'base64');
+            datos.fotoUrl = await response.ref.getDownloadURL();
+        } catch (error) {
+            console.error("Error subiendo foto:", error);
+            // Guardar Base64 directamente si es pequeña
+            if (fotoPerfilBase64.length < 1000000) { // Menor a 1MB
+                datos.fotoPerfil = fotoPerfilBase64;
+            }
+        }
+    }
   
     try {
       await db.collection("curriculums").add(datos);
@@ -607,16 +660,15 @@ async function cargarCVsGuardados() {
             cvItem.className = 'saved-cv-item';
             cvItem.onclick = () => cargarCV(doc.id);
             
-           // Dentro de la función cargarCVsGuardados(), cambia esto:
-cvItem.innerHTML = `
-<div class="saved-cv-content">
-    <strong>${cv.nombres} ${cv.apellidos}</strong>
-    <div>${cv.campos.Email || 'Sin email'}</div>
-</div>
-<button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
-    <i class="fas fa-trash"></i>
-</button>
-`;
+            cvItem.innerHTML = `
+                <div class="saved-cv-content">
+                    <strong>${cv.nombres} ${cv.apellidos}</strong>
+                    <div>${cv.campos.Email || 'Sin email'}</div>
+                </div>
+                <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
             
             savedCvsList.appendChild(cvItem);
         });
@@ -630,7 +682,9 @@ cvItem.innerHTML = `
 async function cargarCV(id) {
     try {
         const doc = await db.collection("curriculums").doc(id).get();
-        if (!doc.exists) return;
+        if (!doc.exists) {
+            throw new Error("El currículum no existe");
+        }
         
         const cv = doc.data();
         
@@ -650,11 +704,16 @@ async function cargarCV(id) {
         }
         
         // Cargar foto si existe
-        if (cv.fotoPerfil) {
-            fotoPerfilBase64 = cv.fotoPerfil;
-            const preview = document.getElementById('photoPreview');
-            preview.innerHTML = `<img src="${cv.fotoPerfil}" alt="Foto de perfil">`;
-            preview.style.display = 'block';
+        if (cv.fotoUrl || cv.fotoPerfil) {
+            try {
+                const fotoSrc = cv.fotoUrl || cv.fotoPerfil;
+                fotoPerfilBase64 = fotoSrc;
+                const preview = document.getElementById('photoPreview');
+                preview.innerHTML = `<img src="${fotoSrc}" alt="Foto de perfil" onerror="this.onerror=null;this.parentNode.style.display='none'">`;
+                preview.style.display = 'block';
+            } catch (e) {
+                console.error("Error al cargar foto:", e);
+            }
         }
         
         // Cargar personalización
@@ -674,7 +733,7 @@ async function cargarCV(id) {
         toggleAgenda();
     } catch (error) {
         console.error("Error al cargar CV:", error);
-        alert("Error al cargar el currículum");
+        alert("Error al cargar el currículum. Por favor intente nuevamente.");
     }
 }
 

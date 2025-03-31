@@ -1,12 +1,13 @@
 /* Reset y base del botón */
-button.close-btn {
+button.close-btn, .cv-delete-btn {
     all: unset;
     box-sizing: border-box;
     width: 32px;
     height: 32px;
     min-width: 32px;
     min-height: 32px;
-    background-color: #ff4444;
+    background-color: #e74c3c;
+    color: white;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -16,13 +17,13 @@ button.close-btn {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-button.close-btn:hover {
-    background-color: #ff0000;
+button.close-btn:hover, .cv-delete-btn:hover {
+    background-color: #c0392b;
     transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-button.close-btn i.fas.fa-times {
+button.close-btn i.fas.fa-times, .cv-delete-btn i.fas.fa-times {
     font-size: 16px;
     color: white;
     width: 16px;
@@ -32,9 +33,6 @@ button.close-btn i.fas.fa-times {
     justify-content: center;
     margin: 0;
     padding: 0;
-    position: relative;
-    top: 0;
-    left: 0;
 }
 
 /* Estilos generales */
@@ -432,73 +430,6 @@ button.danger:hover {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-/* Estilo para los botones de eliminar CV */
-.cv-delete-btn {
-    /* Tamaño fijo */
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    max-width: 30px;
-    max-height: 30px;
-    
-    /* Estilo visual */
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    
-    /* Centrado del icono */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* Espaciado */
-    margin-left: 10px;
-    padding: 0;
-    
-    /* Transición suave */
-    transition: all 0.2s ease;
-    
-    /* Sombra para profundidad */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Estilo hover */
-.cv-delete-btn:hover {
-    background-color: #c0392b;
-    transform: scale(1.1);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-/* Estilo del icono "X" */
-.cv-delete-btn i.fas.fa-trash {
-    /* Cambiamos el icono de basura a una X */
-    display: none;
-}
-
-.cv-delete-btn::after {
-    content: "×";
-    font-size: 20px;
-    font-weight: bold;
-    line-height: 1;
-}
-.cv-delete-btn i.fas.fa-times {
-    /* Tamaño y centrado perfecto */
-    font-size: 16px;
-    color: white;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* Ajuste fino de posición */
-    margin: 0;
-    padding: 0;
 }
 
 /* Vista previa de impresión */
