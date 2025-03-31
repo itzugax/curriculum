@@ -1368,7 +1368,7 @@ function guardarDatos(mostrarAlerta = true) {
     return true;
 }
 
-// Cargar CVs guardados
+// Modificar la función cargarCVsGuardados
 function cargarCVsGuardados() {
     const cvsGuardados = JSON.parse(localStorage.getItem('cvsGuardados')) || [];
     const lista = document.getElementById('savedCvsList');
@@ -1379,7 +1379,7 @@ function cargarCVsGuardados() {
             <div class="saved-cv-item">
                 <div class="saved-cv-content" onclick="cargarCV(${index})">
                     <strong>${cv.nombres} ${cv.apellidos}</strong>
-                    <div>${cv.campos['Email'] || 'Sin email'} - ${cv.campos['Telefono'] || 'Sin teléfono'}</div>
+                    <div>${cv.campos['Cedula'] || 'Sin cédula registrada'}</div>
                 </div>
                 <button class="cv-delete-btn" onclick="eliminarCV(${index}, event)">
                     <i class="fas fa-times"></i>
