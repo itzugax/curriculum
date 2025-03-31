@@ -72,9 +72,20 @@ function actualizarEstilos() {
 }
 
 // Función para mostrar/ocultar agenda
+// Modifica la función toggleAgenda()
 function toggleAgenda() {
-    document.getElementById('agendaPanel').classList.toggle('open');
+    const agendaPanel = document.getElementById('agendaPanel');
+    const agendaBtn = document.querySelector('.agenda-btn');
+    
+    agendaPanel.classList.toggle('open');
     document.getElementById('agendaOverlay').classList.toggle('open');
+    
+    // Mover el botón cuando la agenda está abierta
+    if (agendaPanel.classList.contains('open')) {
+        agendaBtn.style.left = '360px'; // Ajusta este valor según el ancho de tu panel
+    } else {
+        agendaBtn.style.left = '10px'; // Vuelve a la posición original
+    }
 }
 
 // Actualizar opciones de estado civil según sexo
