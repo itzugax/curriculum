@@ -435,25 +435,24 @@ button.warning:hover {
     transition: all 0.2s ease;
 }
 
-.cv-delete-btn:hover {
-    background-color: #c0392b;
-    transform: scale(1.1);
-}
-
-.cv-delete-btn i {
-    /* Tamaño fijo del icono */
-    font-size: 14px;
-    margin: 0;
-    padding: 0;
-}
-
-/* Asegurar que los items de CV mantengan buen espaciado */
+/* Mejoras a los estilos de la agenda */
 .saved-cv-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 15px;
-    padding: 10px 15px;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background: rgb(238, 238, 238);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.saved-cv-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .saved-cv-content {
@@ -462,12 +461,46 @@ button.warning:hover {
     overflow: hidden;
 }
 
-.saved-cv-content strong, 
+.saved-cv-content strong {
+    display: block;
+    color: #2c3e50;
+    font-size: 15px;
+    margin-bottom: 3px;
+}
+
 .saved-cv-content div {
+    font-size: 13px;
+    color: #7f8c8d;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: block;
+}
+
+.cv-delete-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
+}
+
+.cv-delete-btn:hover {
+    background: #c0392b;
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(231, 76, 60, 0.4);
+}
+
+.cv-delete-btn i {
+    font-size: 12px;
 }
 
 /* Vista previa de impresión */
