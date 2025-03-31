@@ -333,14 +333,16 @@ async function cargarCVsGuardados() {
             cvItem.onclick = () => cargarCV(doc.id);
             
             cvItem.innerHTML = `
-                <div class="saved-cv-content">
-                    <strong>${cv.nombres} ${cv.apellidos}</strong>
-                    <div>${cv.campos.Email || 'Sin email'} • ${new Date(cv.timestamp?.toDate()).toLocaleDateString()}</div>
-                </div>
+            <div class="saved-cv-content">
+                <strong>${cv.nombres || 'Sin nombre'} ${cv.apellidos || 'Sin apellido'}</strong>
+                <div>${cv.Email || cv.campos?.Email || 'Sin email'} • ${cv.timestamp?.toDate()?.toLocaleDateString() || 'Sin fecha'}</div>
                 <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
                     <i class="fas fa-times"></i>
                 </button>
-            `;
+            </div>
+        `;
+
+            
             
             savedCvsList.appendChild(cvItem);
         });
