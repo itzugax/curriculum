@@ -4,16 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Currículos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@700&family=Quicksand:wght@500&family=Raleway:wght@500&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        @import url('https://fonts.cdnfonts.com/css/comic-sans-ms');
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -41,7 +35,7 @@
             
             <label>Color principal:</label>
             <div class="color-options">
-                <div class="color-option selected" style="background: #006eff;" data-color="#3498db"></div>
+                <div class="color-option selected" style="background: #3498db;" data-color="#3498db"></div>
                 <div class="color-option" style="background: #e74c3c;" data-color="#e74c3c"></div>
                 <div class="color-option" style="background: #2ecc71;" data-color="#2ecc71"></div>
                 <div class="color-option" style="background: #9b59b6;" data-color="#9b59b6"></div>
@@ -49,16 +43,15 @@
                 <div class="color-option" style="background: #1abc9c;" data-color="#1abc9c"></div>
                 <div class="color-option" style="background: #34495e;" data-color="#34495e"></div>
                 <div class="color-option" style="background: #e84393;" data-color="#e84393"></div>
-                <div class="color-option" style="background: #1d1a9b;" data-color="#1d1a9b"></div>
                 <div class="color-option" style="background: #6c5ce7;" data-color="#6c5ce7"></div>
             </div>
             
             <label>Tipografía:</label>
             <div class="font-options">
-                <div class="font-option selected" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
+                <div class="font-option selected" data-font="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins</div>
+                <div class="font-option" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
                 <div class="font-option" data-font="'Montserrat', sans-serif" style="font-family: 'Montserrat', sans-serif">Montserrat</div>
                 <div class="font-option" data-font="'Open Sans', sans-serif" style="font-family: 'Open Sans', sans-serif">Open Sans</div>
-                <div class="font-option" data-font="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins</div>
                 <div class="font-option" data-font="'Playfair Display', serif" style="font-family: 'Playfair Display', serif">Playfair</div>
                 <div class="font-option" data-font="'Quicksand', sans-serif" style="font-family: 'Quicksand', sans-serif">Quicksand</div>
                 <div class="font-option" data-font="'Raleway', sans-serif" style="font-family: 'Raleway', sans-serif">Raleway</div>
@@ -89,7 +82,7 @@
             <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
             <label><i class="fas fa-id-card"></i> Cédula:</label>
-            <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
+            <input type="text" id="Cedula" placeholder="Ej: V-5.256.123">
 
             <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
             <input type="date" id="FechaNacimiento">
@@ -156,6 +149,9 @@
                 </button>
                 <button type="button" class="danger" onclick="limpiarFormulario()">
                     <i class="fas fa-trash-alt"></i> Limpiar
+                </button>
+                <button type="button" class="primary" onclick="guardarDatos()">
+                    <i class="fas fa-save"></i> Guardar
                 </button>
             </div>
         </form>

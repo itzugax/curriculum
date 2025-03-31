@@ -3,6 +3,7 @@ const { jsPDF } = window.jspdf;
 let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
 let fotoPerfilBase64 = null;
+const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -17,7 +18,6 @@ const firebaseConfig = {
 // Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
@@ -29,9 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fotoPerfil').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            // Verificar tamaño (máximo 500KB)
-            if (file.size > 500000) {
-                alert('La imagen es demasiado grande. Use una imagen menor a 500KB');
+            // Verificar tamaño (máximo 1MB)
+            if (file.size > 1000000) {
+                alert('La imagen es demasiado grande. Use una imagen menor a 1MB');
                 return;
             }
             
@@ -214,6 +214,212 @@ function limpiarFormulario() {
     document.getElementById("photoPreview").innerHTML = "";
     document.getElementById("photoPreview").style.display = "none";
     fotoPerfilBase64 = null;
+}
+
+// Función para subir imagen a ImgBB
+async function subirImagenAIimgBB(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error en la respuesta de ImgBB');
+        }
+        
+        const data = await response.json();
+        return data.data.url; // Devuelve la URL de la imagen
+    } catch (error) {
+        console.error("Error subiendo a ImgBB:", error);
+        throw error;
+    }
+}
+
+// Guardar datos en Firebase con imagen en ImgBB
+async function guardarDatos(mostrarAlerta = true) {
+    const nombres = document.getElementById("Nombres").value;
+    const apellidos = document.getElementById("Apellidos").value;
+    
+    if (!nombres || !apellidos) {
+        if (mostrarAlerta) {
+            alert("Por favor ingresa al menos tu nombre y apellido");
+        }
+        return false;
+    }
+  
+    // Mostrar loader
+    const saveButton = document.querySelector('button[onclick="guardarDatos()"]');
+    const originalText = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    saveButton.disabled = true;
+
+    try {
+        // 1. Preparar objeto de datos
+        const datos = {
+            nombres,
+            apellidos,
+            colorPrincipal,
+            fuenteSeleccionada,
+            campos: {},
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // 2. Recopilar todos los campos del formulario
+        document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
+            if (campo.id && campo.id !== 'fotoPerfil') {
+                datos.campos[campo.id] = campo.value;
+            }
+        });
+
+        // 3. Manejo de la imagen (si existe)
+        const fileInput = document.getElementById('fotoPerfil');
+        if (fileInput.files[0]) {
+            // Subir imagen a ImgBB
+            const imageUrl = await subirImagenAIimgBB(fileInput.files[0]);
+            datos.fotoUrl = imageUrl;
+            
+            // Guardar referencia en Firebase
+            const docRef = await db.collection("curriculums").add(datos);
+            
+            // Actualizar documento con el ID de referencia
+            await db.collection("curriculums").doc(docRef.id).update({
+                docId: docRef.id
+            });
+            
+            console.log("Documento guardado con ID:", docRef.id);
+        } else {
+            // Guardar sin imagen
+            await db.collection("curriculums").add(datos);
+        }
+
+        if (mostrarAlerta) {
+            alert(`✅ CV de ${nombres} ${apellidos} guardado exitosamente`);
+        }
+        
+        cargarCVsGuardados();
+        return true;
+        
+    } catch (error) {
+        console.error("Error al guardar:", error);
+        alert("❌ Error al guardar el currículum. Por favor intenta nuevamente.");
+        return false;
+    } finally {
+        // Restaurar botón
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+    }
+}
+
+// Cargar CVs guardados desde Firebase
+async function cargarCVsGuardados() {
+    try {
+        const querySnapshot = await db.collection("curriculums").orderBy("timestamp", "desc").get();
+        const savedCvsList = document.getElementById('savedCvsList');
+        savedCvsList.innerHTML = '';
+        
+        if (querySnapshot.empty) {
+            savedCvsList.innerHTML = '<p style="text-align: center; color: #666;">No hay currículums guardados</p>';
+            return;
+        }
+        
+        querySnapshot.forEach(doc => {
+            const cv = doc.data();
+            const cvItem = document.createElement('div');
+            cvItem.className = 'saved-cv-item';
+            cvItem.onclick = () => cargarCV(doc.id);
+            
+            cvItem.innerHTML = `
+                <div class="saved-cv-content">
+                    <strong>${cv.nombres} ${cv.apellidos}</strong>
+                    <div>${cv.campos.Email || 'Sin email'} • ${new Date(cv.timestamp?.toDate()).toLocaleDateString()}</div>
+                </div>
+                <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            savedCvsList.appendChild(cvItem);
+        });
+    } catch (error) {
+        console.error("Error al cargar CVs:", error);
+        document.getElementById('savedCvsList').innerHTML = '<p style="text-align: center; color: #ff4444;">Error al cargar currículums</p>';
+    }
+}
+
+// Cargar un CV específico desde Firebase
+async function cargarCV(id) {
+    try {
+        const doc = await db.collection("curriculums").doc(id).get();
+        if (!doc.exists) {
+            throw new Error("El currículum no existe");
+        }
+        
+        const cv = doc.data();
+        
+        // Limpiar formulario
+        limpiarFormulario();
+        
+        // Cargar datos básicos
+        document.getElementById('Nombres').value = cv.nombres || '';
+        document.getElementById('Apellidos').value = cv.apellidos || '';
+        
+        // Cargar otros campos
+        for (const campoId in cv.campos) {
+            const elemento = document.getElementById(campoId);
+            if (elemento) {
+                elemento.value = cv.campos[campoId] || '';
+            }
+        }
+        
+        // Cargar foto desde ImgBB si existe
+        if (cv.fotoUrl) {
+            try {
+                fotoPerfilBase64 = cv.fotoUrl;
+                const preview = document.getElementById('photoPreview');
+                preview.innerHTML = `<img src="${cv.fotoUrl}" alt="Foto de perfil">`;
+                preview.style.display = 'block';
+            } catch (e) {
+                console.error("Error al cargar foto:", e);
+            }
+        }
+        
+        // Cargar personalización
+        colorPrincipal = cv.colorPrincipal || '#3498db';
+        fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
+        actualizarEstilos();
+        
+        // Actualizar selectores
+        document.querySelectorAll('.color-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
+        });
+        
+        document.querySelectorAll('.font-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
+        });
+        
+        toggleAgenda();
+    } catch (error) {
+        console.error("Error al cargar CV:", error);
+        alert("Error al cargar el currículum. Por favor intente nuevamente.");
+    }
+}
+
+// Eliminar CV de Firebase
+async function eliminarCV(id, event) {
+    event.stopPropagation();
+    if (confirm('¿Eliminar este currículum permanentemente?')) {
+        try {
+            await db.collection("curriculums").doc(id).delete();
+            cargarCVsGuardados();
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+            alert("Error al eliminar el currículum");
+        }
+    }
 }
 
 // Generar currículum y mostrar vista previa
@@ -593,162 +799,6 @@ function obtenerSeccion(id, comoLista = false) {
     }
     
     return html || null;
-}
-
-// Guardar datos en Firebase
-async function guardarDatos(mostrarAlerta = true) {
-    const nombres = document.getElementById("Nombres").value;
-    const apellidos = document.getElementById("Apellidos").value;
-    
-    if (!nombres || !apellidos) return false;
-  
-    const datos = {
-      nombres,
-      apellidos,
-      colorPrincipal,
-      fuenteSeleccionada,
-      campos: {},
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-  
-    // Guardar campos
-    document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
-      if (campo.id) datos.campos[campo.id] = campo.value;
-    });
-  
-    // Guardar foto si existe (usando Storage para imágenes grandes)
-    if (fotoPerfilBase64) {
-        try {
-            const storageRef = storage.ref().child(`fotos_perfil/${Date.now()}.jpg`);
-            const response = await storageRef.putString(fotoPerfilBase64.split(',')[1], 'base64');
-            datos.fotoUrl = await response.ref.getDownloadURL();
-        } catch (error) {
-            console.error("Error subiendo foto:", error);
-            // Guardar Base64 directamente si es pequeña
-            if (fotoPerfilBase64.length < 1000000) { // Menor a 1MB
-                datos.fotoPerfil = fotoPerfilBase64;
-            }
-        }
-    }
-  
-    try {
-      await db.collection("curriculums").add(datos);
-      if (mostrarAlerta) alert(`CV de ${nombres} ${apellidos} guardado en la nube`);
-      cargarCVsGuardados();
-      return true;
-    } catch (error) {
-      console.error("Error al guardar:", error);
-      return false;
-    }
-}
-
-// Cargar CVs guardados desde Firebase
-async function cargarCVsGuardados() {
-    try {
-        const querySnapshot = await db.collection("curriculums").orderBy("timestamp", "desc").get();
-        const savedCvsList = document.getElementById('savedCvsList');
-        savedCvsList.innerHTML = '';
-        
-        if (querySnapshot.empty) {
-            savedCvsList.innerHTML = '<p style="text-align: center; color: #666;">No hay currículums guardados</p>';
-            return;
-        }
-        
-        querySnapshot.forEach(doc => {
-            const cv = doc.data();
-            const cvItem = document.createElement('div');
-            cvItem.className = 'saved-cv-item';
-            cvItem.onclick = () => cargarCV(doc.id);
-            
-            cvItem.innerHTML = `
-                <div class="saved-cv-content">
-                    <strong>${cv.nombres} ${cv.apellidos}</strong>
-                    <div>${cv.campos.Email || 'Sin email'}</div>
-                </div>
-                <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            
-            savedCvsList.appendChild(cvItem);
-        });
-    } catch (error) {
-        console.error("Error al cargar CVs:", error);
-        document.getElementById('savedCvsList').innerHTML = '<p style="text-align: center; color: #ff4444;">Error al cargar currículums</p>';
-    }
-}
-
-// Cargar un CV específico desde Firebase
-async function cargarCV(id) {
-    try {
-        const doc = await db.collection("curriculums").doc(id).get();
-        if (!doc.exists) {
-            throw new Error("El currículum no existe");
-        }
-        
-        const cv = doc.data();
-        
-        // Limpiar formulario
-        limpiarFormulario();
-        
-        // Cargar datos básicos
-        document.getElementById('Nombres').value = cv.nombres || '';
-        document.getElementById('Apellidos').value = cv.apellidos || '';
-        
-        // Cargar otros campos
-        for (const campoId in cv.campos) {
-            const elemento = document.getElementById(campoId);
-            if (elemento) {
-                elemento.value = cv.campos[campoId] || '';
-            }
-        }
-        
-        // Cargar foto si existe
-        if (cv.fotoUrl || cv.fotoPerfil) {
-            try {
-                const fotoSrc = cv.fotoUrl || cv.fotoPerfil;
-                fotoPerfilBase64 = fotoSrc;
-                const preview = document.getElementById('photoPreview');
-                preview.innerHTML = `<img src="${fotoSrc}" alt="Foto de perfil" onerror="this.onerror=null;this.parentNode.style.display='none'">`;
-                preview.style.display = 'block';
-            } catch (e) {
-                console.error("Error al cargar foto:", e);
-            }
-        }
-        
-        // Cargar personalización
-        colorPrincipal = cv.colorPrincipal || '#3498db';
-        fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
-        actualizarEstilos();
-        
-        // Actualizar selectores
-        document.querySelectorAll('.color-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
-        });
-        
-        document.querySelectorAll('.font-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
-        });
-        
-        toggleAgenda();
-    } catch (error) {
-        console.error("Error al cargar CV:", error);
-        alert("Error al cargar el currículum. Por favor intente nuevamente.");
-    }
-}
-
-// Eliminar CV de Firebase
-async function eliminarCV(id, event) {
-    event.stopPropagation();
-    if (confirm('¿Eliminar este currículum permanentemente?')) {
-        try {
-            await db.collection("curriculums").doc(id).delete();
-            cargarCVsGuardados();
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-            alert("Error al eliminar el currículum");
-        }
-    }
 }
 
 // Formateador de cédula
