@@ -4,39 +4,27 @@ let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
 let fotoPerfilBase64 = null;
 
+// Configuración de Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyCEGy5745n-6ZPXW1oPX3p6O_Gpz19a824",
     authDomain: "generador-898e9.firebaseapp.com",
     projectId: "generador-898e9",
-    storageBucket: "generador-898e9.firebasestorage.app",
+    storageBucket: "generador-898e9.appspot.com",
     messagingSenderId: "10684061843",
-    appId: "G-58MWDZ7XFV"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+    appId: "1:10684061843:web:58d9e8a5b8c8b8d5a8b9c3"
+};
 
-
-// Seleccionar Poppins por defecto
-document.querySelectorAll('.font-option').forEach(opt => {
-    opt.classList.remove('selected');
-    if (opt.getAttribute('data-font') === "'Poppins', sans-serif") {
-        opt.classList.add('selected');
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    actualizarDatos();
-    cargarCVsGuardados();
-    configurarPersonalizacion();
-    
-    // Eliminé la selección específica de Poppins aquí porque ahora está en configurarPersonalizacion()
-});
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
     cargarCVsGuardados();
     configurarPersonalizacion();
+    
+    // Configurar evento para la foto de perfil
     document.getElementById('fotoPerfil').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -97,7 +85,6 @@ function actualizarEstilos() {
 }
 
 // Función para mostrar/ocultar agenda
-// Modifica la función toggleAgenda()
 function toggleAgenda() {
     const agendaPanel = document.getElementById('agendaPanel');
     const agendaBtn = document.querySelector('.agenda-btn');
@@ -107,9 +94,9 @@ function toggleAgenda() {
     
     // Mover el botón cuando la agenda está abierta
     if (agendaPanel.classList.contains('open')) {
-        agendaBtn.style.left = '360px'; // Ajusta este valor según el ancho de tu panel
+        agendaBtn.style.left = '360px';
     } else {
-        agendaBtn.style.left = '10px'; // Vuelve a la posición original
+        agendaBtn.style.left = '10px';
     }
 }
 
@@ -185,6 +172,9 @@ function limpiarFormulario() {
         div.innerHTML = "";
     });
     document.getElementById("EstadoCivil").innerHTML = "";
+    document.getElementById("photoPreview").innerHTML = "";
+    document.getElementById("photoPreview").style.display = "none";
+    fotoPerfilBase64 = null;
 }
 
 // Generar currículum y mostrar vista previa
@@ -192,14 +182,11 @@ function generarCurriculum() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
     
-    
     if (!nombres || !apellidos) {
         alert("Por favor ingresa al menos tu nombre y apellido");
         return;
-        
     }
     
-
     // Guardar automáticamente en la agenda
     guardarDatos(false);
     
@@ -219,55 +206,6 @@ function mostrarVistaPrevia() {
 function cerrarVistaPrevia() {
     document.getElementById('printPreviewOverlay').classList.remove('active');
     document.body.classList.remove('preview-active');
-    resetearEstilos();
-}
-
-// Resetear estilos al cerrar vista previa
-function resetearEstilos() {
-    colorPrincipal = '#3498db';
-    fuenteSeleccionada = "'Poppins', sans-serif";
-    
-    // Resetear selectores de personalización
-    document.querySelectorAll('.color-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
-    });
-    
-    document.querySelectorAll('.font-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
-    });
-    
-    actualizarEstilos();
-}
-
-// Imprimir currículum
-function imprimirCurriculum() {
-    const originalContent = document.getElementById('printPreviewContent').innerHTML;
-    const printContent = originalContent.replace(/<div class="print-preview-actions.*?<\/div>/gs, '');
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Imprimir CV</title>
-            <style>
-                body { margin: 0; padding: 0; }
-                @page { size: auto; margin: 0mm; }
-            </style>
-        </head>
-        <body>
-            ${printContent}
-            <script>
-                window.onload = function() {
-                    setTimeout(function() {
-                        window.print();
-                        window.close();
-                    }, 200);
-                };
-            </script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
 }
 
 // Descargar PDF
@@ -330,434 +268,6 @@ function generarHTMLCV() {
         default:
             return generarFormatoCreativo();
     }
-}
-
-// Nuevo formato profesional
-function generarFormatoProfesional() {
-    const datosBasicos = obtenerDatosBasicos();
-    const estudios = obtenerEstudios();
-    const experiencia = obtenerSeccion('Experiencia', true);
-    const habilidades = obtenerSeccion('Habilidades', true);
-    const cursos = obtenerSeccion('Cursos', true);
-
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Currículum Vitae</title>
-            <style>
-                body {
-                    font-family: ${fuenteSeleccionada};
-                    margin: 0;
-                    padding: 0;
-                    color: #333;
-                    line-height: 1.6;
-                }
-                .cv-container {
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 40px;
-                    background: white;
-                }
-                .header {
-                    display: flex;
-                    align-items: center;
-                    margin-bottom: 30px;
-                    padding-bottom: 20px;
-                    border-bottom: 3px solid ${colorPrincipal};
-                }
-                .photo-container {
-                    width: 120px;
-                    height: 120px;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    margin-right: 30px;
-                    border: 3px solid ${colorPrincipal};
-                }
-                .photo-container img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                .name-title {
-                    flex: 2;
-                }
-                h1 {
-                    color: ${colorPrincipal};
-                    margin: 0;
-                    font-size: 32px;
-                    font-weight: 700;
-                }
-                .title {
-                    color: #666;
-                    font-size: 18px;
-                    margin-top: 5px;
-                }
-                .contact-info {
-                    margin-top: 15px;
-                }
-                .contact-item {
-                    display: flex;
-                    align-items: center;
-                    margin-bottom: 5px;
-                    font-size: 14px;
-                }
-                .contact-item i {
-                    color: ${colorPrincipal};
-                    width: 20px;
-                    text-align: center;
-                    margin-right: 8px;
-                }
-                .section {
-                    margin-bottom: 25px;
-                }
-                .section-title {
-                    color: ${colorPrincipal};
-                    font-size: 20px;
-                    font-weight: 600;
-                    margin-bottom: 15px;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    border-bottom: 1px solid #eee;
-                    padding-bottom: 5px;
-                }
-                .section-content {
-                    font-size: 14px;
-                }
-                .info-grid {
-                    display: grid;
-                    grid-template-columns: 150px 1fr;
-                    gap: 15px;
-                }
-                .info-label {
-                    font-weight: bold;
-                    color: #555;
-                }
-                .info-value {
-                    color: #333;
-                }
-                ul {
-                    padding-left: 20px;
-                    margin: 10px 0;
-                }
-                li {
-                    margin-bottom: 8px;
-                }
-                .skills-container {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                }
-                .skill-item {
-                    background: ${colorPrincipal}15;
-                    border: 1px solid ${colorPrincipal}30;
-                    padding: 5px 12px;
-                    border-radius: 20px;
-                    font-size: 13px;
-                }
-                .experience-item {
-                    margin-bottom: 20px;
-                }
-                .experience-title {
-                    font-weight: 600;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .experience-date {
-                    color: #666;
-                    font-size: 13px;
-                }
-                @media print {
-                    body {
-                        padding: 0;
-                        background: white;
-                    }
-                    .cv-container {
-                        padding: 20px;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="cv-container">
-                <div class="header">
-                    ${fotoPerfilBase64 ? `
-                    <div class="photo-container">
-                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
-                    </div>
-                    ` : ''}
-                    <div class="name-title">
-                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                        <div class="title">Profesional</div>
-                        <div class="contact-info">
-                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                ${datosBasicos ? `<div class="section">
-                    <div class="section-title">Información Personal</div>
-                    <div class="section-content">
-                        <div class="info-grid">
-                            ${datosBasicos}
-                        </div>
-                    </div>
-                </div>` : ''}
-                
-                ${estudios ? `<div class="section">
-                    <div class="section-title">Formación Académica</div>
-                    <div class="section-content">
-                        ${estudios}
-                    </div>
-                </div>` : ''}
-                
-                ${experiencia ? `<div class="section">
-                    <div class="section-title">Experiencia Profesional</div>
-                    <div class="section-content">
-                        ${experiencia.split('<li>').filter(item => item).map(item => 
-                            `<div class="experience-item">
-                                <div class="experience-content">${item.replace('</li>', '')}</div>
-                            </div>`
-                        ).join('')}
-                    </div>
-                </div>` : ''}
-                
-                ${habilidades ? `<div class="section">
-                    <div class="section-title">Habilidades</div>
-                    <div class="section-content">
-                        <div class="skills-container">
-                            ${habilidades.split('<li>').filter(item => item).map(item => 
-                                `<div class="skill-item">${item.replace('</li>', '')}</div>`
-                            ).join('')}
-                        </div>
-                    </div>
-                </div>` : ''}
-                
-                ${cursos ? `<div class="section">
-                    <div class="section-title">Cursos y Certificaciones</div>
-                    <div class="section-content">
-                        <ul>${cursos}</ul>
-                    </div>
-                </div>` : ''}
-            </div>
-        </body>
-        </html>
-    `;
-}
-
-// Nuevo formato minimalista
-function generarFormatoMinimalista() {
-    const datosBasicos = obtenerDatosBasicos();
-    const estudios = obtenerEstudios();
-    const experiencia = obtenerSeccion('Experiencia', true);
-    const habilidades = obtenerSeccion('Habilidades', true);
-    const cursos = obtenerSeccion('Cursos', true);
-
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Currículum Vitae</title>
-            <style>
-                body {
-                    font-family: ${fuenteSeleccionada};
-                    margin: 0;
-                    padding: 20px;
-                    color: #333;
-                    line-height: 1.8;
-                    background: #f9f9f9;
-                }
-                .cv-container {
-                    max-width: 700px;
-                    margin: 0 auto;
-                    padding: 40px;
-                    background: white;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-                }
-                .header {
-                    text-align: center;
-                    margin-bottom: 40px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-                .photo-container {
-                    width: 120px;
-                    height: 120px;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    margin-bottom: 20px;
-                    border: 3px solid ${colorPrincipal};
-                }
-                .photo-container img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                h1 {
-                    color: ${colorPrincipal};
-                    margin: 0;
-                    font-size: 36px;
-                    font-weight: 300;
-                    letter-spacing: 2px;
-                }
-                .subtitle {
-                    color: #999;
-                    font-size: 16px;
-                    margin-top: 10px;
-                    letter-spacing: 1px;
-                }
-                .contact-info {
-                    margin-top: 20px;
-                    display: flex;
-                    justify-content: center;
-                    flex-wrap: wrap;
-                    gap: 20px;
-                }
-                .contact-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-size: 14px;
-                    color: #666;
-                }
-                .contact-item i {
-                    color: ${colorPrincipal};
-                }
-                .section {
-                    margin-bottom: 30px;
-                }
-                .section-title {
-                    color: ${colorPrincipal};
-                    font-size: 18px;
-                    font-weight: 400;
-                    margin-bottom: 15px;
-                    text-transform: uppercase;
-                    letter-spacing: 3px;
-                }
-                .section-content {
-                    font-size: 15px;
-                    color: #555;
-                    line-height: 1.8;
-                }
-                .info-item {
-                    margin-bottom: 15px;
-                }
-                .info-item strong {
-                    display: block;
-                    color: #333;
-                    margin-bottom: 5px;
-                }
-                ul {
-                    list-style: none;
-                    padding: 0;
-                    margin: 0;
-                }
-                li {
-                    margin-bottom: 15px;
-                    padding-left: 20px;
-                    position: relative;
-                }
-                li:before {
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    top: 10px;
-                    width: 10px;
-                    height: 2px;
-                    background: ${colorPrincipal};
-                }
-                .education-item {
-                    margin-bottom: 20px;
-                }
-                .education-item:last-child {
-                    margin-bottom: 0;
-                }
-                .skills {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                }
-                .skill {
-                    padding: 5px 15px;
-                    background: ${colorPrincipal}10;
-                    color: ${colorPrincipal};
-                    font-size: 14px;
-                }
-                @media print {
-                    body {
-                        padding: 0;
-                        background: white;
-                    }
-                    .cv-container {
-                        box-shadow: none;
-                        padding: 30px;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="cv-container">
-                <div class="header">
-                    ${fotoPerfilBase64 ? `
-                    <div class="photo-container">
-                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
-                    </div>
-                    ` : ''}
-                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
-                    </div>
-                </div>
-                
-                ${datosBasicos ? `<div class="section">
-                    <div class="section-title">Sobre mí</div>
-                    <div class="section-content">
-                        ${datosBasicos}
-                    </div>
-                </div>` : ''}
-                
-                ${estudios ? `<div class="section">
-                    <div class="section-title">Educación</div>
-                    <div class="section-content">
-                        ${estudios}
-                    </div>
-                </div>` : ''}
-                
-                ${experiencia ? `<div class="section">
-                    <div class="section-title">Experiencia</div>
-                    <div class="section-content">
-                        <ul>${experiencia}</ul>
-                    </div>
-                </div>` : ''}
-                
-                ${habilidades ? `<div class="section">
-                    <div class="section-title">Habilidades</div>
-                    <div class="section-content">
-                        <div class="skills">
-                            ${habilidades.split('<li>').filter(item => item).map(item => 
-                                `<div class="skill">${item.replace('</li>', '')}</div>`
-                            ).join('')}
-                        </div>
-                    </div>
-                </div>` : ''}
-                
-                ${cursos ? `<div class="section">
-                    <div class="section-title">Cursos</div>
-                    <div class="section-content">
-                        <ul>${cursos}</ul>
-                    </div>
-                </div>` : ''}
-            </div>
-        </body>
-        </html>
-    `;
 }
 
 // Formato Creativo (predeterminado)
@@ -971,399 +481,6 @@ function generarFormatoCreativo() {
     `;
 }
 
-// Formato Moderno
-function generarFormatoModerno() {
-    const datosBasicos = obtenerDatosBasicos();
-    const estudios = obtenerEstudios();
-    const experiencia = obtenerSeccion('Experiencia', true);
-    const habilidades = obtenerSeccion('Habilidades', true);
-    const cursos = obtenerSeccion('Cursos', true);
-
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Currículum Vitae</title>
-            <style>
-                body {
-                    font-family: ${fuenteSeleccionada};
-                    margin: 0;
-                    padding: 20px;
-                    color: #333;
-                    line-height: 1.6;
-                }
-                .cv-container {
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 30px;
-                    background: white;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.05);
-                    position: relative;
-                }
-                .header {
-                    display: flex;
-                    align-items: center;
-                    margin-bottom: 30px;
-                    padding-bottom: 20px;
-                    border-bottom: 2px solid ${colorPrincipal};
-                }
-                .photo-container {
-                    width: 100px;
-                    height: 100px;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    margin-right: 30px;
-                    border: 3px solid ${colorPrincipal};
-                }
-                .photo-container img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                .name-container {
-                    flex-grow: 1;
-                }
-                h1 {
-                    color: ${colorPrincipal};
-                    margin: 0;
-                    font-size: 32px;
-                    font-weight: 700;
-                }
-                .contact-info {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 5px;
-                }
-                .contact-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-size: 14px;
-                }
-                .contact-item i {
-                    color: ${colorPrincipal};
-                    width: 20px;
-                    text-align: center;
-                }
-                .two-columns {
-                    display: grid;
-                    grid-template-columns: 1fr 2fr;
-                    gap: 30px;
-                }
-                .left-column {
-                    border-right: 1px solid #eee;
-                    padding-right: 20px;
-                }
-                .section {
-                    margin-bottom: 25px;
-                }
-                .section-title {
-                    color: ${colorPrincipal};
-                    font-size: 20px;
-                    margin-bottom: 15px;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-                .section-content {
-                    font-size: 14px;
-                }
-                .info-item {
-                    margin-bottom: 10px;
-                }
-                .info-item strong {
-                    display: block;
-                    color: #444;
-                }
-                ul {
-                    padding-left: 20px;
-                    margin: 10px 0;
-                }
-                li {
-                    margin-bottom: 8px;
-                }
-                .skills {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                }
-                .skill {
-                    background: ${colorPrincipal}22;
-                    color: ${colorPrincipal};
-                    padding: 5px 10px;
-                    border-radius: 15px;
-                    font-size: 13px;
-                }
-                .education-item {
-                    margin-bottom: 15px;
-                }
-                .education-item:last-child {
-                    margin-bottom: 0;
-                }
-                @media print {
-                    body {
-                        padding: 0;
-                        background: white;
-                    }
-                    .cv-container {
-                        box-shadow: none;
-                        padding: 15px;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="cv-container">
-                <div class="header">
-                    ${fotoPerfilBase64 ? `
-                    <div class="photo-container">
-                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
-                    </div>
-                    ` : ''}
-                    <div class="name-container">
-                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                    </div>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
-                    </div>
-                </div>
-                
-                <div class="two-columns">
-                    <div class="left-column">
-                        ${datosBasicos ? `<div class="section">
-                            <div class="section-title">Datos Personales</div>
-                            <div class="section-content">
-                                ${datosBasicos}
-                            </div>
-                        </div>` : ''}
-                        
-                        ${habilidades ? `<div class="section">
-                            <div class="section-title">Habilidades</div>
-                            <div class="section-content">
-                                <div class="skills">
-                                    ${habilidades.split('<li>').filter(item => item).map(item => 
-                                        `<div class="skill">${item.replace('</li>', '')}</div>`
-                                    ).join('')}
-                                </div>
-                            </div>
-                        </div>` : ''}
-                    </div>
-                    
-                    <div class="right-column">
-                        ${estudios ? `<div class="section">
-                            <div class="section-title">Educación</div>
-                            <div class="section-content">
-                                <div class="education-items">
-                                    ${estudios}
-                                </div>
-                            </div>
-                        </div>` : ''}
-                        
-                        ${experiencia ? `<div class="section">
-                            <div class="section-title">Experiencia</div>
-                            <div class="section-content">
-                                <ul>${experiencia}</ul>
-                            </div>
-                        </div>` : ''}
-                        
-                        ${cursos ? `<div class="section">
-                            <div class="section-title">Cursos</div>
-                            <div class="section-content">
-                                <ul>${cursos}</ul>
-                            </div>
-                        </div>` : ''}
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>
-    `;
-}
-
-// Formato Clásico
-function generarFormatoClasico() {
-    const datosBasicos = obtenerDatosBasicos();
-    const estudios = obtenerEstudios();
-    const experiencia = obtenerSeccion('Experiencia', true);
-    const habilidades = obtenerSeccion('Habilidades', true);
-    const cursos = obtenerSeccion('Cursos', true);
-
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Currículum Vitae</title>
-            <style>
-                body {
-                    font-family: ${fuenteSeleccionada};
-                    margin: 0;
-                    padding: 20px;
-                    color: #333;
-                    line-height: 1.8;
-                }
-                .cv-container {
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 30px;
-                    background: white;
-                    border: 1px solid #ddd;
-                }
-                .header {
-                    text-align: center;
-                    margin-bottom: 30px;
-                    padding-bottom: 20px;
-                    border-bottom: 2px solid ${colorPrincipal};
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-                .photo-container {
-                    width: 120px;
-                    height: 120px;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    margin-bottom: 20px;
-                    border: 3px solid ${colorPrincipal};
-                }
-                .photo-container img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                h1 {
-                    color: ${colorPrincipal};
-                    margin: 0;
-                    font-size: 28px;
-                    text-transform: uppercase;
-                }
-                .contact-info {
-                    margin-top: 10px;
-                    font-size: 14px;
-                }
-                .section {
-                    margin-bottom: 20px;
-                }
-                .section-title {
-                    background: ${colorPrincipal};
-                    color: white;
-                    padding: 5px 10px;
-                    font-size: 18px;
-                    margin-bottom: 10px;
-                }
-                .section-content {
-                    padding: 0 10px;
-                }
-                .info-row {
-                    display: flex;
-                    margin-bottom: 12px;
-                }
-                .info-label {
-                    font-weight: bold;
-                    width: 150px;
-                }
-                .info-value {
-                    flex-grow: 1;
-                }
-                ul {
-                    padding-left: 20px;
-                    margin: 10px 0;
-                }
-                li {
-                    margin-bottom: 8px;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 10px 0;
-                }
-                table td {
-                    padding: 8px;
-                    border: 1px solid #ddd;
-                    vertical-align: top;
-                }
-                table tr:first-child td {
-                    font-weight: bold;
-                    background: #f5f5f5;
-                }
-                .education-item {
-                    margin-bottom: 15px;
-                }
-                .education-item:last-child {
-                    margin-bottom: 0;
-                }
-                @media print {
-                    body {
-                        padding: 0;
-                        background: white;
-                    }
-                    .cv-container {
-                        border: none;
-                        padding: 15px;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="cv-container">
-                <div class="header">
-                    ${fotoPerfilBase64 ? `
-                    <div class="photo-container">
-                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
-                    </div>
-                    ` : ''}
-                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
-                        ${document.getElementById('Telefono').value ? `<span>${document.getElementById('Telefono').value}</span> | ` : ''}
-                        ${document.getElementById('Direccion').value ? `<span>${document.getElementById('Direccion').value}</span>` : ''}
-                    </div>
-                </div>
-                
-                ${datosBasicos ? `<div class="section">
-                    <div class="section-title">Datos Personales</div>
-                    <div class="section-content">
-                        ${datosBasicos}
-                    </div>
-                </div>` : ''}
-                
-                ${estudios ? `<div class="section">
-                    <div class="section-title">Formación Académica</div>
-                    <div class="section-content">
-                        <div class="education-items">
-                            ${estudios}
-                        </div>
-                    </div>
-                </div>` : ''}
-                
-                ${experiencia ? `<div class="section">
-                    <div class="section-title">Experiencia Laboral</div>
-                    <div class="section-content">
-                        <ul>${experiencia}</ul>
-                    </div>
-                </div>` : ''}
-                
-                ${habilidades ? `<div class="section">
-                    <div class="section-title">Habilidades</div>
-                    <div class="section-content">
-                        <ul>${habilidades}</ul>
-                    </div>
-                </div>` : ''}
-                
-                ${cursos ? `<div class="section">
-                    <div class="section-title">Cursos y Certificaciones</div>
-                    <div class="section-content">
-                        <ul>${cursos}</ul>
-                    </div>
-                </div>` : ''}
-            </div>
-        </body>
-        </html>
-    `;
-}
-
 // Obtener datos básicos formateados
 function obtenerDatosBasicos() {
     let html = '';
@@ -1379,13 +496,9 @@ function obtenerDatosBasicos() {
         if (valor) {
             let valorMostrar = valor;
             if (campo.id === 'FechaNacimiento') {
-                // Dividir la fecha en partes y crear una fecha local sin ajuste de zona horaria
                 const partes = valor.split('-');
                 if (partes.length === 3) {
-                    const año = parseInt(partes[0]);
-                    const mes = parseInt(partes[1]) - 1; // Los meses en JavaScript son 0-11
-                    const día = parseInt(partes[2]);
-                    valorMostrar = `${día.toString().padStart(2, '0')}/${(mes + 1).toString().padStart(2, '0')}/${año}`;
+                    valorMostrar = `${partes[2]}/${partes[1]}/${partes[0]}`;
                 }
             }
             html += `<div class="info-item"><i class="fas fa-${campo.icono}"></i> <strong>${campo.nombre}:</strong> ${valorMostrar}</div>`;
@@ -1403,7 +516,6 @@ function obtenerEstudios() {
         { id: 'EducacionSecundaria', nombre: 'Educación Secundaria', icono: 'graduation-cap' }
     ];
 
-    // Educación primaria y secundaria
     estudios.forEach(estudio => {
         const valor = document.getElementById(estudio.id).value;
         if (valor) {
@@ -1411,13 +523,11 @@ function obtenerEstudios() {
         }
     });
 
-    // Educación superior (solo mostrar el título una vez)
     const educacionSuperior = document.getElementById('EducacionSuperior').value;
     if (educacionSuperior) {
         html += `<div class="education-item"><i class="fas fa-university"></i> <strong>Educación Superior:</strong> ${educacionSuperior}</div>`;
     }
 
-    // Campos adicionales de educación superior (sin título)
     const inputsSuperior = document.getElementById('EducacionSuperiorCampos').getElementsByTagName('input');
     for (let i = 0; i < inputsSuperior.length; i++) {
         if (inputsSuperior[i].value) {
@@ -1446,8 +556,7 @@ function obtenerSeccion(id, comoLista = false) {
     return html || null;
 }
 
-// Guardar datos en localStorage
-// Reemplaza la función guardarDatos
+// Guardar datos en Firebase
 async function guardarDatos(mostrarAlerta = true) {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
@@ -1460,6 +569,7 @@ async function guardarDatos(mostrarAlerta = true) {
       colorPrincipal,
       fuenteSeleccionada,
       campos: {},
+      fotoPerfil: fotoPerfilBase64,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
   
@@ -1477,49 +587,52 @@ async function guardarDatos(mostrarAlerta = true) {
       console.error("Error al guardar:", error);
       return false;
     }
-  }
-  
-  
-  // Reemplaza cargarCVsGuardados
- // Nueva función para cargar un CV específico
+}
+
+// Cargar CVs guardados desde Firebase
+async function cargarCVsGuardados() {
+    try {
+        const querySnapshot = await db.collection("curriculums").orderBy("timestamp", "desc").get();
+        const savedCvsList = document.getElementById('savedCvsList');
+        savedCvsList.innerHTML = '';
+        
+        if (querySnapshot.empty) {
+            savedCvsList.innerHTML = '<p style="text-align: center; color: #666;">No hay currículums guardados</p>';
+            return;
+        }
+        
+        querySnapshot.forEach(doc => {
+            const cv = doc.data();
+            const cvItem = document.createElement('div');
+            cvItem.className = 'saved-cv-item';
+            cvItem.onclick = () => cargarCV(doc.id);
+            
+           // Dentro de la función cargarCVsGuardados(), cambia esto:
+cvItem.innerHTML = `
+<div class="saved-cv-content">
+    <strong>${cv.nombres} ${cv.apellidos}</strong>
+    <div>${cv.campos.Email || 'Sin email'}</div>
+</div>
+<button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
+    <i class="fas fa-trash"></i>
+</button>
+`;
+            
+            savedCvsList.appendChild(cvItem);
+        });
+    } catch (error) {
+        console.error("Error al cargar CVs:", error);
+        document.getElementById('savedCvsList').innerHTML = '<p style="text-align: center; color: #ff4444;">Error al cargar currículums</p>';
+    }
+}
+
+// Cargar un CV específico desde Firebase
 async function cargarCV(id) {
     try {
-      const doc = await db.collection("curriculums").doc(id).get();
-      if (doc.exists) {
+        const doc = await db.collection("curriculums").doc(id).get();
+        if (!doc.exists) return;
+        
         const cv = doc.data();
-        // ... (el resto de tu lógica actual para cargar los datos)
-      }
-    } catch (error) {
-      console.error("Error al cargar CV:", error);
-    }
-  }
-  
-  // Nueva función para eliminar
-  async function eliminarCV(id, event) {
-    event.stopPropagation();
-    if (confirm('¿Eliminar este currículum permanentemente?')) {
-      try {
-        await db.collection("curriculums").doc(id).delete();
-        cargarCVsGuardados();
-      } catch (error) {
-        console.error("Error al eliminar:", error);
-      }
-    }
-  }
-// Cargar un CV específico
-function cargarCV(index) {
-    const cvsGuardados = JSON.parse(localStorage.getItem('cvsGuardados')) || [];
-    
-        // Cargar foto si existe
-        if (cv.fotoPerfil) {
-            fotoPerfilBase64 = cv.fotoPerfil;
-            const preview = document.getElementById('photoPreview');
-            preview.innerHTML = `<img src="${cv.fotoPerfil}" alt="Foto de perfil">`;
-            preview.style.display = 'block';
-        }
-
-    if (index >= 0 && index < cvsGuardados.length) {
-        const cv = cvsGuardados[index];
         
         // Limpiar formulario
         limpiarFormulario();
@@ -1529,41 +642,20 @@ function cargarCV(index) {
         document.getElementById('Apellidos').value = cv.apellidos || '';
         
         // Cargar otros campos
-        for (const id in cv.campos) {
-            const elemento = document.getElementById(id);
+        for (const campoId in cv.campos) {
+            const elemento = document.getElementById(campoId);
             if (elemento) {
-                elemento.value = cv.campos[id] || '';
+                elemento.value = cv.campos[campoId] || '';
             }
         }
         
-        // Cargar campos dinámicos
-        ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
-            const div = document.getElementById(id);
-            if (div && cv.campos[id]) {
-                div.innerHTML = '';
-                cv.campos[id].forEach(valor => {
-                    if (valor) {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.value = valor;
-                        input.style.marginTop = '5px';
-                        
-                        const removeBtn = document.createElement('span');
-                        removeBtn.className = 'remove-btn';
-                        removeBtn.innerHTML = '(-)';
-                        removeBtn.onclick = function() {
-                            div.removeChild(input);
-                            div.removeChild(removeBtn);
-                            div.removeChild(document.createElement('br'));
-                        };
-                        
-                        div.appendChild(input);
-                        div.appendChild(removeBtn);
-                        div.appendChild(document.createElement('br'));
-                    }
-                });
-            }
-        });
+        // Cargar foto si existe
+        if (cv.fotoPerfil) {
+            fotoPerfilBase64 = cv.fotoPerfil;
+            const preview = document.getElementById('photoPreview');
+            preview.innerHTML = `<img src="${cv.fotoPerfil}" alt="Foto de perfil">`;
+            preview.style.display = 'block';
+        }
         
         // Cargar personalización
         colorPrincipal = cv.colorPrincipal || '#3498db';
@@ -1580,30 +672,42 @@ function cargarCV(index) {
         });
         
         toggleAgenda();
+    } catch (error) {
+        console.error("Error al cargar CV:", error);
+        alert("Error al cargar el currículum");
     }
 }
+
+// Eliminar CV de Firebase
+async function eliminarCV(id, event) {
+    event.stopPropagation();
+    if (confirm('¿Eliminar este currículum permanentemente?')) {
+        try {
+            await db.collection("curriculums").doc(id).delete();
+            cargarCVsGuardados();
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+            alert("Error al eliminar el currículum");
+        }
+    }
+}
+
 // Formateador de cédula
 document.getElementById('Cedula').addEventListener('input', function(e) {
     const input = e.target;
     const startPos = input.selectionStart;
     const cursorWasAtEnd = (startPos === input.value.length);
     
-    // Obtener valor sin el "V-" inicial
     let value = input.value.replace(/^V-/, '').replace(/\./g, '');
-    
-    // Solo permitir números
     value = value.replace(/\D/g, '');
     
-    // Agregar separadores de miles
     if (value.length > 3) {
         value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
     
-    // Reconstruir el valor con "V-" y mantener la posición del cursor
     input.value = value ? 'V-' + value : '';
     
     if (!cursorWasAtEnd) {
-        // Ajustar posición del cursor si no estaba al final
         const adjustedPos = startPos - (input.value.length - e.target.value.length);
         input.setSelectionRange(adjustedPos, adjustedPos);
     }
@@ -1615,4 +719,31 @@ document.getElementById('Cedula').addEventListener('blur', function(e) {
         alert('Formato de cédula inválido. Ejemplo correcto: V-1.234.567');
         e.target.focus();
     }
+});
+
+// Función para capitalizar texto
+function capitalizarTexto(texto) {
+    return texto.replace(/\b\w/g, function(letra) {
+        return letra.toUpperCase();
+    }).replace(/\s+/g, ' ').trim();
+}
+
+// Aplicar a los campos relevantes
+document.addEventListener('DOMContentLoaded', function() {
+    const camposACapitalizar = [
+        'Nombres', 
+        'Apellidos',
+        'EducacionPrimaria',
+        'EducacionSecundaria',
+        'EducacionSuperior'
+    ];
+
+    camposACapitalizar.forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) {
+            campo.addEventListener('blur', function() {
+                this.value = capitalizarTexto(this.value.toLowerCase());
+            });
+        }
+    });
 });

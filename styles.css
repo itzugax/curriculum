@@ -1,42 +1,28 @@
 /* Reset y base del botón */
 button.close-btn {
-    all: unset; /* Reset total */
+    all: unset;
     box-sizing: border-box;
-    
-    
-    /* Tamaño fijo */
     width: 32px;
     height: 32px;
     min-width: 32px;
     min-height: 32px;
-    
-    /* Fondo rojo vibrante */
     background-color: #ff4444;
     border-radius: 50%;
     cursor: pointer;
-    
-    /* Centrado perfecto */
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    /* Transición suave */
     transition: all 0.2s ease;
-    
-    /* Sombra para profundidad */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Estilo hover */
 button.close-btn:hover {
     background-color: #ff0000;
     transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-/* Estilo del icono "X" */
 button.close-btn i.fas.fa-times {
-    /* Tamaño y centrado perfecto */
     font-size: 16px;
     color: white;
     width: 16px;
@@ -44,14 +30,13 @@ button.close-btn i.fas.fa-times {
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    /* Ajuste fino de posición */
     margin: 0;
     padding: 0;
     position: relative;
     top: 0;
     left: 0;
 }
+
 /* Estilos generales */
 body {
     font-family: 'Poppins', sans-serif;
@@ -69,16 +54,15 @@ body.preview-active {
     overflow: hidden;
 }
 
-/* Al hover en botones */
 button:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Transición en inputs */
 input, select {
     transition: all 0.3s ease;
 }
+
 input:focus {
     transform: scale(1.02);
 }
@@ -102,11 +86,11 @@ input:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease; /* Añade transición para movimiento suave */
+    transition: all 0.3s ease;
 }
+
 .agenda-btn i.fas.fa-address-book {
-    font-size: 40px; /* Ajusta este valor a tu preferencia */
-    /* Mantén el resto de propiedades igual */
+    font-size: 40px;
 }
 
 .agenda-btn:hover {
@@ -126,6 +110,7 @@ input:focus {
     padding: 20px;
     overflow-y: auto;
 }
+
 .agenda-panel.open {
     left: 0;
 }
@@ -155,22 +140,40 @@ input:focus {
 
 /* Contenedor principal */
 .form-container {
+    position: relative;
     background: white;
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(13, 54, 131, 0.589);
+    border: none !important;
     width: 100%;
     max-width: 900px;
     margin: 20px;
 }
+
 .form-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    z-index: -1;
     background: linear-gradient(45deg, 
-        #a1c4fd, 
-        #c2e9fb, 
-        #ff9a9e, 
-        #fad0c4);
+        #3498db, 
+        #1100ff, 
+        #35aeff, 
+        #12f3d5);
+    background-size: 300% 300%;
+    border-radius: 18px;
+    animation: gradientBorder 5s ease infinite;
 }
 
+@keyframes gradientBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 
 /* Títulos */
 h2 {
@@ -334,28 +337,12 @@ button.primary:hover {
     background: #2980b9;
 }
 
-button.secondary {
-    background: #2ecc71;
-}
-
-button.secondary:hover {
-    background: #27ae60;
-}
-
 button.danger {
     background: #e74c3c;
 }
 
 button.danger:hover {
     background: #c0392b;
-}
-
-button.warning {
-    background: #f39c12;
-}
-
-button.warning:hover {
-    background: #d35400;
 }
 
 /* Botones de agregar/eliminar */
@@ -400,45 +387,13 @@ button.warning:hover {
     margin-top: 5px;
 }
 
-/* Lista de CVs guardados - ESTILOS ACTUALIZADOS */
-/* Lista de CVs guardados - ESTILOS DEFINITIVOS */
+/* Lista de CVs guardados */
 #savedCvsList {
     max-height: 70vh;
     overflow-y: auto;
     padding: 5px;
 }
 
-/* Nuevos estilos para botones de eliminar */
-.cv-delete-btn {
-    /* Tamaño fijo */
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    max-width: 30px;
-    max-height: 30px;
-    
-    /* Estilo visual */
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    
-    /* Centrado del icono */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* Espaciado */
-    margin-left: 10px;
-    padding: 0;
-    
-    /* Transición suave */
-    transition: all 0.2s ease;
-}
-
-/* Mejoras a los estilos de la agenda */
 .saved-cv-item {
     display: flex;
     align-items: center;
@@ -479,31 +434,71 @@ button.warning:hover {
     text-overflow: ellipsis;
 }
 
+/* Estilo para los botones de eliminar CV */
 .cv-delete-btn {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    min-height: 28px;
-    background: #e74c3c;
+    /* Tamaño fijo */
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
+    
+    /* Estilo visual */
+    background-color: #e74c3c;
     color: white;
     border: none;
     border-radius: 50%;
     cursor: pointer;
+    
+    /* Centrado del icono */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Espaciado */
+    margin-left: 10px;
+    padding: 0;
+    
+    /* Transición suave */
+    transition: all 0.2s ease;
+    
+    /* Sombra para profundidad */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Estilo hover */
+.cv-delete-btn:hover {
+    background-color: #c0392b;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Estilo del icono "X" */
+.cv-delete-btn i.fas.fa-trash {
+    /* Cambiamos el icono de basura a una X */
+    display: none;
+}
+
+.cv-delete-btn::after {
+    content: "×";
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1;
+}
+.cv-delete-btn i.fas.fa-times {
+    /* Tamaño y centrado perfecto */
+    font-size: 16px;
+    color: white;
+    width: 16px;
+    height: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
-}
-
-.cv-delete-btn:hover {
-    background: #c0392b;
-    transform: scale(1.1);
-    box-shadow: 0 3px 8px rgba(231, 76, 60, 0.4);
-}
-
-.cv-delete-btn i {
-    font-size: 12px;
+    
+    /* Ajuste fino de posición */
+    margin: 0;
+    padding: 0;
 }
 
 /* Vista previa de impresión */
@@ -551,57 +546,6 @@ button.warning:hover {
     font-size: 20px;
 }
 
-/* BOTÓN CERRAR - ESTILOS ACTUALIZADOS */
-/* Botón de cerrar - ESTILO DEFINITIVO */
-.close-btn {
-    /* Tamaño fijo e inalterable */
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    
-    /* Estilo visual */
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    
-    /* Centrado perfecto */
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    
-    /* Reset de estilos no deseados */
-    padding: 0 !important;
-    margin: 0 !important;
-    line-height: 1;
-    
-    /* Transición suave */
-    transition: all 0.2s ease;
-    
-    /* Posicionamiento */
-    position: relative;
-    flex-shrink: 0;
-}
-
-.close-btn:hover {
-    background: #c0392b;
-    transform: scale(1.1);
-}
-
-.close-btn i {
-    /* Tamaño fijo del icono */
-    font-size: 16px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .print-preview-content {
     padding: 20px;
     overflow-y: auto;
@@ -615,6 +559,51 @@ button.warning:hover {
     justify-content: flex-end;
     gap: 10px;
     border-top: 1px solid #e0e0e0;
+}
+
+/* Estilos para la subida de foto */
+.photo-upload-container {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.photo-upload-btn {
+    background: #3498db;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.photo-upload-btn:hover {
+    background: #2980b9;
+}
+
+.photo-preview {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 10px auto;
+    overflow: hidden;
+    border: 3px solid #3498db;
+    background-color: #f5f5f5;
+    display: none;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-upload-container small {
+    display: block;
+    color: #666;
+    font-size: 12px;
 }
 
 /* Diseño responsivo */
@@ -680,99 +669,4 @@ button.warning:hover {
     .no-print {
         display: none !important;
     }
-}
-.form-container {
-    position: relative;
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(13, 54, 131, 0.589);
-    /* Elimina cualquier borde existente */
-    border: none !important;
-}
-
-/* Borde degradado animado (solo el borde) */
-.form-container::before {
-    content: '';
-    position: absolute;
-    top: -2px; /* Grosor del borde */
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    z-index: -1;
-    background: linear-gradient(45deg, 
-        #3498db, 
-        #1100ff, 
-        #35aeff, 
-        #12f3d5);
-    background-size: 300% 300%;
-    border-radius: 18px; /* Un poco más grande que el contenedor */
-    animation: gradientBorder 5s ease infinite;
-}
-
-/* Animación del degradado */
-@keyframes gradientBorder {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Estilos para la subida de foto */
-
-.photo-container {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-right: 20px;
-    border: 3px solid ${colorPrincipal};
-}
-
-.photo-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.photo-upload-container {
-    margin-top: 10px;
-    text-align: center;
-}
-
-.photo-upload-btn {
-    background: #3498db;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.photo-upload-btn:hover {
-    background: #2980b9;
-}
-
-.photo-preview {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    margin: 10px auto;
-    overflow: hidden;
-    border: 3px solid #3498db;
-    background-color: #f5f5f5;
-    display: none;
-}
-
-.photo-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.photo-upload-container small {
-    display: block;
-    color: #666;
-    font-size: 12px;
 }
