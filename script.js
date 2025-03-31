@@ -1266,8 +1266,14 @@ function obtenerDatosBasicos() {
         if (valor) {
             let valorMostrar = valor;
             if (campo.id === 'FechaNacimiento') {
-                const fecha = new Date(valor);
-                valorMostrar = fecha.toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                // Dividir la fecha en partes y crear una fecha local sin ajuste de zona horaria
+                const partes = valor.split('-');
+                if (partes.length === 3) {
+                    const año = parseInt(partes[0]);
+                    const mes = parseInt(partes[1]) - 1; // Los meses en JavaScript son 0-11
+                    const día = parseInt(partes[2]);
+                    valorMostrar = `${día.toString().padStart(2, '0')}/${(mes + 1).toString().padStart(2, '0')}/${año}`;
+                }
             }
             html += `<div class="info-item"><i class="fas fa-${campo.icono}"></i> <strong>${campo.nombre}:</strong> ${valorMostrar}</div>`;
         }
