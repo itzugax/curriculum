@@ -832,29 +832,3 @@ document.getElementById('Cedula').addEventListener('blur', function(e) {
     }
 });
 
-// Función para capitalizar texto
-function capitalizarTexto(texto) {
-    return texto.replace(/\b\w/g, function(letra) {
-        return letra.toUpperCase();
-    }).replace(/\s+/g, ' ').trim();
-}
-
-// Aplicar a los campos relevantes
-document.addEventListener('DOMContentLoaded', function() {
-    const camposACapitalizar = [
-        'Nombres', 
-        'Apellidos',
-        'EducacionPrimaria',
-        'EducacionSecundaria',
-        'EducacionSuperior'
-    ];
-
-    camposACapitalizar.forEach(id => {
-        const campo = document.getElementById(id);
-        if (campo) {
-            campo.addEventListener('blur', function() {
-                this.value = capitalizarTexto(this.value.toLowerCase());
-            });
-        }
-    });
-});
