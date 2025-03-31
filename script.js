@@ -2,6 +2,18 @@
 const { jsPDF } = window.jspdf;
 let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
+let fotoPerfilBase64 = null;
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCEGy5745n-6ZPXW1oPX3p6O_Gpz19a824",
+    authDomain: "generador-898e9.firebaseapp.com",
+    projectId: "generador-898e9",
+    storageBucket: "generador-898e9.firebasestorage.app",
+    messagingSenderId: "10684061843",
+    appId: "G-58MWDZ7XFV"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
 
 // Seleccionar Poppins por defecto
@@ -25,6 +37,19 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
     cargarCVsGuardados();
     configurarPersonalizacion();
+    document.getElementById('fotoPerfil').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                fotoPerfilBase64 = event.target.result;
+                const preview = document.getElementById('photoPreview');
+                preview.innerHTML = `<img src="${fotoPerfilBase64}" alt="Foto de perfil">`;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
     
     // Seleccionar Poppins por defecto
     document.querySelectorAll('.font-option').forEach(opt => {
@@ -337,25 +362,26 @@ function generarFormatoProfesional() {
                 }
                 .header {
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 3px solid ${colorPrincipal};
                 }
-                .name-title {
-                    flex: 2;
-                }
-                .photo-placeholder {
+                .photo-container {
                     width: 120px;
                     height: 120px;
-                    background: #f5f5f5;
-                    border: 2px solid ${colorPrincipal};
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #999;
-                    font-size: 14px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-right: 30px;
+                    border: 3px solid ${colorPrincipal};
+                }
+                .photo-container img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                .name-title {
+                    flex: 2;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -456,6 +482,11 @@ function generarFormatoProfesional() {
         <body>
             <div class="cv-container">
                 <div class="header">
+                    ${fotoPerfilBase64 ? `
+                    <div class="photo-container">
+                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
+                    </div>
+                    ` : ''}
                     <div class="name-title">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                         <div class="title">Profesional</div>
@@ -535,7 +566,7 @@ function generarFormatoMinimalista() {
                 body {
                     font-family: ${fuenteSeleccionada};
                     margin: 0;
-                    padding: 0;
+                    padding: 20px;
                     color: #333;
                     line-height: 1.8;
                     background: #f9f9f9;
@@ -550,6 +581,22 @@ function generarFormatoMinimalista() {
                 .header {
                     text-align: center;
                     margin-bottom: 40px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+                .photo-container {
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-bottom: 20px;
+                    border: 3px solid ${colorPrincipal};
+                }
+                .photo-container img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -656,6 +703,11 @@ function generarFormatoMinimalista() {
         <body>
             <div class="cv-container">
                 <div class="header">
+                    ${fotoPerfilBase64 ? `
+                    <div class="photo-container">
+                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
+                    </div>
+                    ` : ''}
                     <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                     <div class="contact-info">
                         ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
@@ -754,6 +806,9 @@ function generarFormatoCreativo() {
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                 }
                 .header::after {
                     content: "";
@@ -764,6 +819,20 @@ function generarFormatoCreativo() {
                     width: 100px;
                     height: 3px;
                     background: ${colorPrincipal};
+                }
+                .photo-container {
+                    width: 150px;
+                    height: 150px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-bottom: 20px;
+                    border: 4px solid ${colorPrincipal};
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                }
+                .photo-container img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -855,6 +924,11 @@ function generarFormatoCreativo() {
         <body>
             <div class="cv-container">
                 <div class="header">
+                    ${fotoPerfilBase64 ? `
+                    <div class="photo-container">
+                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
+                    </div>
+                    ` : ''}
                     <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                     <div class="contact-info">
                         ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
@@ -933,6 +1007,19 @@ function generarFormatoModerno() {
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 2px solid ${colorPrincipal};
+                }
+                .photo-container {
+                    width: 100px;
+                    height: 100px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-right: 30px;
+                    border: 3px solid ${colorPrincipal};
+                }
+                .photo-container img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
                 }
                 .name-container {
                     flex-grow: 1;
@@ -1028,6 +1115,11 @@ function generarFormatoModerno() {
         <body>
             <div class="cv-container">
                 <div class="header">
+                    ${fotoPerfilBase64 ? `
+                    <div class="photo-container">
+                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
+                    </div>
+                    ` : ''}
                     <div class="name-container">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                     </div>
@@ -1124,6 +1216,22 @@ function generarFormatoClasico() {
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 2px solid ${colorPrincipal};
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+                .photo-container {
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    margin-bottom: 20px;
+                    border: 3px solid ${colorPrincipal};
+                }
+                .photo-container img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -1201,6 +1309,11 @@ function generarFormatoClasico() {
         <body>
             <div class="cv-container">
                 <div class="header">
+                    ${fotoPerfilBase64 ? `
+                    <div class="photo-container">
+                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
+                    </div>
+                    ` : ''}
                     <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                     <div class="contact-info">
                         ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
@@ -1334,97 +1447,77 @@ function obtenerSeccion(id, comoLista = false) {
 }
 
 // Guardar datos en localStorage
-function guardarDatos(mostrarAlerta = true) {
+// Reemplaza la función guardarDatos
+async function guardarDatos(mostrarAlerta = true) {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
     
-    if (!nombres || !apellidos) {
-        return false;
-    }
-
+    if (!nombres || !apellidos) return false;
+  
     const datos = {
-        nombres,
-        apellidos,
-        colorPrincipal,
-        fuenteSeleccionada,
-        campos: {}
+      nombres,
+      apellidos,
+      colorPrincipal,
+      fuenteSeleccionada,
+      campos: {},
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
-
-    // Guardar campos estáticos
+  
+    // Guardar campos
     document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
-        if (campo.id) datos.campos[campo.id] = campo.value;
+      if (campo.id) datos.campos[campo.id] = campo.value;
     });
-
-    // Guardar campos dinámicos
-    ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
-        datos.campos[id] = [];
-        const inputs = document.getElementById(id).getElementsByTagName('input');
-        for (let input of inputs) {
-            datos.campos[id].push(input.value);
-        }
-    });
-
-    // Guardar en localStorage
-    const cvsGuardados = JSON.parse(localStorage.getItem('cvsGuardados')) || [];
-    const indexExistente = cvsGuardados.findIndex(cv => 
-        cv.nombres === nombres && cv.apellidos === apellidos);
-    
-    if (indexExistente !== -1) {
-        cvsGuardados[indexExistente] = datos;
-    } else {
-        cvsGuardados.push(datos);
+  
+    try {
+      await db.collection("curriculums").add(datos);
+      if (mostrarAlerta) alert(`CV de ${nombres} ${apellidos} guardado en la nube`);
+      cargarCVsGuardados();
+      return true;
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      return false;
     }
-
-    localStorage.setItem('cvsGuardados', JSON.stringify(cvsGuardados));
-    
-    if (mostrarAlerta) {
-        alert(`CV de ${nombres} ${apellidos} guardado correctamente`);
+  }
+  
+  
+  // Reemplaza cargarCVsGuardados
+ // Nueva función para cargar un CV específico
+async function cargarCV(id) {
+    try {
+      const doc = await db.collection("curriculums").doc(id).get();
+      if (doc.exists) {
+        const cv = doc.data();
+        // ... (el resto de tu lógica actual para cargar los datos)
+      }
+    } catch (error) {
+      console.error("Error al cargar CV:", error);
     }
-    
-    cargarCVsGuardados();
-    return true;
-}
-
-// Modificar la función cargarCVsGuardados
-function cargarCVsGuardados() {
-    const cvsGuardados = JSON.parse(localStorage.getItem('cvsGuardados')) || [];
-    const lista = document.getElementById('savedCvsList');
-    
-    lista.innerHTML = cvsGuardados.length === 0 
-        ? '<p style="text-align: center; color: #666;">No hay CVs guardados</p>'
-        : cvsGuardados.map((cv, index) => `
-            <div class="saved-cv-item">
-                <div class="saved-cv-content" onclick="cargarCV(${index})">
-                    <strong>${cv.nombres} ${cv.apellidos}</strong>
-                    <div>${cv.campos['Cedula'] || 'Sin cédula registrada'}</div>
-                </div>
-                <button class="cv-delete-btn" onclick="eliminarCV(${index}, event)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `).join('');
-}
-
-// Modificar la función eliminarCV para incluir confirmación
-function eliminarCV(index, event) {
+  }
+  
+  // Nueva función para eliminar
+  async function eliminarCV(id, event) {
     event.stopPropagation();
-    
-    if (confirm('¿Estás seguro que deseas eliminar este currículum? Esta acción no se puede deshacer.')) {
-        const cvsGuardados = JSON.parse(localStorage.getItem('cvsGuardados')) || [];
-        
-        if (index >= 0 && index < cvsGuardados.length) {
-            const cv = cvsGuardados[index];
-            cvsGuardados.splice(index, 1);
-            localStorage.setItem('cvsGuardados', JSON.stringify(cvsGuardados));
-            cargarCVsGuardados();
-        }
+    if (confirm('¿Eliminar este currículum permanentemente?')) {
+      try {
+        await db.collection("curriculums").doc(id).delete();
+        cargarCVsGuardados();
+      } catch (error) {
+        console.error("Error al eliminar:", error);
+      }
     }
-}
-
+  }
 // Cargar un CV específico
 function cargarCV(index) {
     const cvsGuardados = JSON.parse(localStorage.getItem('cvsGuardados')) || [];
     
+        // Cargar foto si existe
+        if (cv.fotoPerfil) {
+            fotoPerfilBase64 = cv.fotoPerfil;
+            const preview = document.getElementById('photoPreview');
+            preview.innerHTML = `<img src="${cv.fotoPerfil}" alt="Foto de perfil">`;
+            preview.style.display = 'block';
+        }
+
     if (index >= 0 && index < cvsGuardados.length) {
         const cv = cvsGuardados[index];
         
