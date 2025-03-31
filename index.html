@@ -16,6 +16,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
+<!-- En el <head> de tu index.html -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
 <body>
     <!-- Botón de agenda lateral -->
     <button class="agenda-btn" onclick="toggleAgenda()">
@@ -68,8 +72,19 @@
         
         <!-- Formulario -->
         <form id="cvForm">
-            <!-- Sección de datos personales -->
-            <div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
+<!-- Sección de datos personales -->
+<div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
+
+<!-- Nuevo campo para foto -->
+<label><i class="fas fa-camera"></i> Foto de perfil:</label>
+<div class="photo-upload-container">
+    <input type="file" id="fotoPerfil" accept="image/*" style="display: none;">
+    <button type="button" class="photo-upload-btn" onclick="document.getElementById('fotoPerfil').click()">
+        <i class="fas fa-upload"></i> Seleccionar Foto
+    </button>
+    <div class="photo-preview" id="photoPreview"></div>
+    <small>Recomendado: 1:1 ratio (ej. 300x300px)</small>
+</div>
             
             <label><i class="fas fa-signature"></i> Nombres:</label>
             <input type="text" id="Nombres" placeholder="Ej: Carmen María" required>
