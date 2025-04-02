@@ -17,12 +17,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('FotoPerfil').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            // Crear URL local para mostrar al instante
-            fotoPerfilLocal = URL.createObjectURL(file);
+        // Crear URL local para mostrar al instante
+        fotoPerfilLocal = URL.createObjectURL(file);
             
-            // Mostrar vista previa local
-            document.getElementById('fotoPreview').src = fotoPerfilLocal;
-            document.getElementById('fotoPreviewContainer').style.display = 'block';
+        // Mostrar vista previa local con formato 1:1
+        const previewContainer = document.getElementById('fotoPreviewContainer');
+        const previewImg = document.getElementById('fotoPreview');
+        
+        previewContainer.style.display = 'block';
+        previewContainer.innerHTML = `
+            <div style="width: 150px; height: 150px; border-radius: 50%; 
+                        border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
+                <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+        `;
+        document.getElementById('fotoPreview').src = fotoPerfilLocal;
             
             // Subir a ImgBB en segundo plano (para cuando se guarde)
             subirFotoABackground(file);
@@ -423,12 +432,15 @@ function generarFotoPerfilHTML() {
     
     return `
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${fotoParaMostrar}" 
-                 style="max-width: 150px; max-height: 150px; border-radius: 50%; 
-                        border: 4px solid ${colorPrincipal}; object-fit: cover;">
+            <div style="width: 150px; height: 150px; border-radius: 50%; 
+                        border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
+                <img src="${fotoParaMostrar}" 
+                     style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
         </div>
     `;
 }
+
 
 // Nuevo formato profesional
 function generarFormatoProfesional() {
@@ -1595,12 +1607,25 @@ async function cargarCVsGuardados() {
 }
 
 // Eliminar CV de Firebase
+// Eliminar CV de Firebase
 async function eliminarCV(id, event) {
     event.stopPropagation();
+    
+    const codigoConfirmacion = prompt('Ingrese el código de confirmación para eliminar este currículum:');
+    
+    if (codigoConfirmacion === null) {
+        return; // El usuario canceló
+    }
+    
+    if (codigoConfirmacion !== '311009') {
+        alert('Código incorrecto. No se ha eliminado el currículum.');
+        return;
+    }
     
     if (confirm('¿Estás seguro que deseas eliminar este currículum? Esta acción no se puede deshacer.')) {
         try {
             await firebase.firestore().collection('curriculums').doc(id).delete();
+            alert('Currículum eliminado correctamente');
             cargarCVsGuardados();
         } catch (error) {
             console.error("Error al eliminar CV:", error);
