@@ -4,11 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Currículos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@700&family=Quicksand:wght@500&family=Raleway:wght@500&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/comic-sans-ms');
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Botón de agenda lateral -->
@@ -35,7 +41,7 @@
             
             <label>Color principal:</label>
             <div class="color-options">
-                <div class="color-option selected" style="background: #3498db;" data-color="#3498db"></div>
+                <div class="color-option selected" style="background: #006eff;" data-color="#3498db"></div>
                 <div class="color-option" style="background: #e74c3c;" data-color="#e74c3c"></div>
                 <div class="color-option" style="background: #2ecc71;" data-color="#2ecc71"></div>
                 <div class="color-option" style="background: #9b59b6;" data-color="#9b59b6"></div>
@@ -43,15 +49,16 @@
                 <div class="color-option" style="background: #1abc9c;" data-color="#1abc9c"></div>
                 <div class="color-option" style="background: #34495e;" data-color="#34495e"></div>
                 <div class="color-option" style="background: #e84393;" data-color="#e84393"></div>
+                <div class="color-option" style="background: #1d1a9b;" data-color="#1d1a9b"></div>
                 <div class="color-option" style="background: #6c5ce7;" data-color="#6c5ce7"></div>
             </div>
             
             <label>Tipografía:</label>
             <div class="font-options">
-                <div class="font-option selected" data-font="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins</div>
-                <div class="font-option" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
+                <div class="font-option selected" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
                 <div class="font-option" data-font="'Montserrat', sans-serif" style="font-family: 'Montserrat', sans-serif">Montserrat</div>
                 <div class="font-option" data-font="'Open Sans', sans-serif" style="font-family: 'Open Sans', sans-serif">Open Sans</div>
+                <div class="font-option" data-font="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins</div>
                 <div class="font-option" data-font="'Playfair Display', serif" style="font-family: 'Playfair Display', serif">Playfair</div>
                 <div class="font-option" data-font="'Quicksand', sans-serif" style="font-family: 'Quicksand', sans-serif">Quicksand</div>
                 <div class="font-option" data-font="'Raleway', sans-serif" style="font-family: 'Raleway', sans-serif">Raleway</div>
@@ -63,17 +70,6 @@
         <form id="cvForm">
             <!-- Sección de datos personales -->
             <div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
-
-            <!-- Campo para foto -->
-            <label><i class="fas fa-camera"></i> Foto de perfil:</label>
-            <div class="photo-upload-container">
-                <input type="file" id="fotoPerfil" accept="image/*" style="display: none;">
-                <button type="button" class="photo-upload-btn" onclick="document.getElementById('fotoPerfil').click()">
-                    <i class="fas fa-upload"></i> Seleccionar Foto
-                </button>
-                <div class="photo-preview" id="photoPreview"></div>
-                <small>Recomendado: 1:1 ratio (ej. 300x300px)</small>
-            </div>
             
             <label><i class="fas fa-signature"></i> Nombres:</label>
             <input type="text" id="Nombres" placeholder="Ej: Carmen María" required>
@@ -82,7 +78,7 @@
             <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
             <label><i class="fas fa-id-card"></i> Cédula:</label>
-            <input type="text" id="Cedula" placeholder="Ej: V-5.256.123">
+            <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
 
             <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
             <input type="date" id="FechaNacimiento">
@@ -106,6 +102,12 @@
 
             <label><i class="fas fa-phone"></i> Teléfono:</label>
             <input type="tel" id="Telefono" placeholder="Ej: 0412-5681421">
+
+            <label><i class="fas fa-camera"></i> Foto de perfil:</label>
+            <input type="file" id="FotoPerfil" accept="image/*">
+            <div id="fotoPreviewContainer" style="display: none; margin-top: 10px;">
+                <img id="fotoPreview" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+            </div>
 
             <!-- Sección de educación -->
             <div class="section-title"><i class="fas fa-graduation-cap"></i> Educación</div>
@@ -150,9 +152,6 @@
                 <button type="button" class="danger" onclick="limpiarFormulario()">
                     <i class="fas fa-trash-alt"></i> Limpiar
                 </button>
-                <button type="button" class="primary" onclick="guardarDatos()">
-                    <i class="fas fa-save"></i> Guardar
-                </button>
             </div>
         </form>
     </div>
@@ -179,5 +178,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Inicializar Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEGy5745n-6ZPXW1oPX3p6O_Gpz19a824",
+            authDomain: "generador-898e9.firebaseapp.com",
+            projectId: "generador-898e9",
+            storageBucket: "generador-898e9.appspot.com",
+            messagingSenderId: "10684061843",
+            appId: "1:10684061843:web:58d9e8a5b8c8b8d5a8b9c3"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
 </body>
 </html>

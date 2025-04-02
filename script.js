@@ -2,22 +2,10 @@
 const { jsPDF } = window.jspdf;
 let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
-let fotoPerfilBase64 = null;
+let fotoPerfilUrl = null;
+let fotoPerfilLocal = null; // Nueva variable para la URL local
+let fotoPerfilId = null;
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
-
-// Configuración de Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyCEGy5745n-6ZPXW1oPX3p6O_Gpz19a824",
-    authDomain: "generador-898e9.firebaseapp.com",
-    projectId: "generador-898e9",
-    storageBucket: "generador-898e9.appspot.com",
-    messagingSenderId: "10684061843",
-    appId: "1:10684061843:web:58d9e8a5b8c8b8d5a8b9c3"
-};
-
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
@@ -25,65 +13,46 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarCVsGuardados();
     configurarPersonalizacion();
     
-    // Configurar evento para la foto de perfil
-    document.getElementById('fotoPerfil').addEventListener('change', function(e) {
+    // Configurar el input de foto
+    document.getElementById('FotoPerfil').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            // Verificar tamaño (máximo 1MB)
-            if (file.size > 1000000) {
-                alert('La imagen es demasiado grande. Use una imagen menor a 1MB');
-                return;
-            }
+            // Crear URL local para mostrar al instante
+            fotoPerfilLocal = URL.createObjectURL(file);
             
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                // Comprimir imagen
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    // Redimensionar a máximo 300px
-                    const MAX_WIDTH = 300;
-                    const MAX_HEIGHT = 300;
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Convertir a Base64 con calidad reducida
-                    fotoPerfilBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    const preview = document.getElementById('photoPreview');
-                    preview.innerHTML = `<img src="${fotoPerfilBase64}" alt="Foto de perfil">`;
-                    preview.style.display = 'block';
-                };
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-    
-    // Seleccionar Poppins por defecto
-    document.querySelectorAll('.font-option').forEach(opt => {
-        if (opt.getAttribute('data-font') === "'Poppins', sans-serif") {
-            opt.classList.add('selected');
+            // Mostrar vista previa local
+            document.getElementById('fotoPreview').src = fotoPerfilLocal;
+            document.getElementById('fotoPreviewContainer').style.display = 'block';
+            
+            // Subir a ImgBB en segundo plano (para cuando se guarde)
+            subirFotoABackground(file);
+        } else {
+            fotoPerfilLocal = null;
+            fotoPerfilUrl = null;
+            document.getElementById('fotoPreviewContainer').style.display = 'none';
         }
     });
 });
+
+// Función para subir foto en segundo plano
+async function subirFotoABackground(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            fotoPerfilUrl = data.data.url;
+            fotoPerfilId = data.data.id;
+        }
+    } catch (error) {
+        console.error("Error al subir la foto:", error);
+    }
+}
 
 // Configuración de selectores de personalización
 function configurarPersonalizacion() {
@@ -103,7 +72,6 @@ function configurarPersonalizacion() {
             document.querySelectorAll('.font-option').forEach(opt => opt.classList.remove('selected'));
             this.classList.add('selected');
             fuenteSeleccionada = this.getAttribute('data-font');
-            actualizarEstilos();
         });
     });
 }
@@ -211,217 +179,10 @@ function limpiarFormulario() {
         div.innerHTML = "";
     });
     document.getElementById("EstadoCivil").innerHTML = "";
-    document.getElementById("photoPreview").innerHTML = "";
-    document.getElementById("photoPreview").style.display = "none";
-    fotoPerfilBase64 = null;
-}
-
-// Función para subir imagen a ImgBB
-async function subirImagenAIimgBB(file) {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    try {
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error('Error en la respuesta de ImgBB');
-        }
-        
-        const data = await response.json();
-        return data.data.url; // Devuelve la URL de la imagen
-    } catch (error) {
-        console.error("Error subiendo a ImgBB:", error);
-        throw error;
-    }
-}
-
-// Guardar datos en Firebase con imagen en ImgBB
-async function guardarDatos(mostrarAlerta = true) {
-    const nombres = document.getElementById("Nombres").value;
-    const apellidos = document.getElementById("Apellidos").value;
-    
-    if (!nombres || !apellidos) {
-        if (mostrarAlerta) {
-            alert("Por favor ingresa al menos tu nombre y apellido");
-        }
-        return false;
-    }
-  
-    // Mostrar loader
-    const saveButton = document.querySelector('button[onclick="guardarDatos()"]');
-    const originalText = saveButton.innerHTML;
-    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-    saveButton.disabled = true;
-
-    try {
-        // 1. Preparar objeto de datos
-        const datos = {
-            nombres,
-            apellidos,
-            colorPrincipal,
-            fuenteSeleccionada,
-            campos: {},
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        // 2. Recopilar todos los campos del formulario
-        document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
-            if (campo.id && campo.id !== 'fotoPerfil') {
-                datos.campos[campo.id] = campo.value;
-            }
-        });
-
-        // 3. Manejo de la imagen (si existe)
-        const fileInput = document.getElementById('fotoPerfil');
-        if (fileInput.files[0]) {
-            // Subir imagen a ImgBB
-            const imageUrl = await subirImagenAIimgBB(fileInput.files[0]);
-            datos.fotoUrl = imageUrl;
-            
-            // Guardar referencia en Firebase
-            const docRef = await db.collection("curriculums").add(datos);
-            
-            // Actualizar documento con el ID de referencia
-            await db.collection("curriculums").doc(docRef.id).update({
-                docId: docRef.id
-            });
-            
-            console.log("Documento guardado con ID:", docRef.id);
-        } else {
-            // Guardar sin imagen
-            await db.collection("curriculums").add(datos);
-        }
-
-        if (mostrarAlerta) {
-            alert(`✅ CV de ${nombres} ${apellidos} guardado exitosamente`);
-        }
-        
-        cargarCVsGuardados();
-        return true;
-        
-    } catch (error) {
-        console.error("Error al guardar:", error);
-        alert("❌ Error al guardar el currículum. Por favor intenta nuevamente.");
-        return false;
-    } finally {
-        // Restaurar botón
-        saveButton.innerHTML = originalText;
-        saveButton.disabled = false;
-    }
-}
-
-// Cargar CVs guardados desde Firebase
-async function cargarCVsGuardados() {
-    try {
-        const querySnapshot = await db.collection("curriculums").orderBy("timestamp", "desc").get();
-        const savedCvsList = document.getElementById('savedCvsList');
-        savedCvsList.innerHTML = '';
-        
-        if (querySnapshot.empty) {
-            savedCvsList.innerHTML = '<p style="text-align: center; color: #666;">No hay currículums guardados</p>';
-            return;
-        }
-        
-        querySnapshot.forEach(doc => {
-            const cv = doc.data();
-            const cvItem = document.createElement('div');
-            cvItem.className = 'saved-cv-item';
-            cvItem.onclick = () => cargarCV(doc.id);
-            
-            cvItem.innerHTML = `
-            <div class="saved-cv-content">
-                <strong>${cv.nombres || 'Sin nombre'} ${cv.apellidos || 'Sin apellido'}</strong>
-                <div>${cv.Email || cv.campos?.Email || 'Sin email'} • ${cv.timestamp?.toDate()?.toLocaleDateString() || 'Sin fecha'}</div>
-                <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-
-            
-            
-            savedCvsList.appendChild(cvItem);
-        });
-    } catch (error) {
-        console.error("Error al cargar CVs:", error);
-        document.getElementById('savedCvsList').innerHTML = '<p style="text-align: center; color: #ff4444;">Error al cargar currículums</p>';
-    }
-}
-
-// Cargar un CV específico desde Firebase
-async function cargarCV(id) {
-    try {
-        const doc = await db.collection("curriculums").doc(id).get();
-        if (!doc.exists) {
-            throw new Error("El currículum no existe");
-        }
-        
-        const cv = doc.data();
-        
-        // Limpiar formulario
-        limpiarFormulario();
-        
-        // Cargar datos básicos
-        document.getElementById('Nombres').value = cv.nombres || '';
-        document.getElementById('Apellidos').value = cv.apellidos || '';
-        
-        // Cargar otros campos
-        for (const campoId in cv.campos) {
-            const elemento = document.getElementById(campoId);
-            if (elemento) {
-                elemento.value = cv.campos[campoId] || '';
-            }
-        }
-        
-        // Cargar foto desde ImgBB si existe
-        if (cv.fotoUrl) {
-            try {
-                fotoPerfilBase64 = cv.fotoUrl;
-                const preview = document.getElementById('photoPreview');
-                preview.innerHTML = `<img src="${cv.fotoUrl}" alt="Foto de perfil">`;
-                preview.style.display = 'block';
-            } catch (e) {
-                console.error("Error al cargar foto:", e);
-            }
-        }
-        
-        // Cargar personalización
-        colorPrincipal = cv.colorPrincipal || '#3498db';
-        fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
-        actualizarEstilos();
-        
-        // Actualizar selectores
-        document.querySelectorAll('.color-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
-        });
-        
-        document.querySelectorAll('.font-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
-        });
-        
-        toggleAgenda();
-    } catch (error) {
-        console.error("Error al cargar CV:", error);
-        alert("Error al cargar el currículum. Por favor intente nuevamente.");
-    }
-}
-
-// Eliminar CV de Firebase
-async function eliminarCV(id, event) {
-    event.stopPropagation();
-    if (confirm('¿Eliminar este currículum permanentemente?')) {
-        try {
-            await db.collection("curriculums").doc(id).delete();
-            cargarCVsGuardados();
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-            alert("Error al eliminar el currículum");
-        }
-    }
+    document.getElementById("fotoPreviewContainer").style.display = "none";
+    fotoPerfilUrl = null;
+    fotoPerfilLocal = null;
+    fotoPerfilId = null;
 }
 
 // Generar currículum y mostrar vista previa
@@ -434,7 +195,7 @@ function generarCurriculum() {
         return;
     }
     
-    // Guardar automáticamente en la agenda
+    // Guardar automáticamente en la agenda (en segundo plano)
     guardarDatos(false);
     
     // Mostrar vista previa
@@ -442,17 +203,94 @@ function generarCurriculum() {
 }
 
 // Mostrar vista previa del currículum
-function mostrarVistaPrevia() {
+async function mostrarVistaPrevia() {
+    const nombres = document.getElementById("Nombres").value;
+    const apellidos = document.getElementById("Apellidos").value;
+    
+    if (!nombres || !apellidos) {
+        alert("Por favor ingresa al menos tu nombre y apellido");
+        return;
+    }
+
+    // Usar la foto local si está disponible (más rápido)
+    if (fotoPerfilLocal) {
+        try {
+            await precargarImagen(fotoPerfilLocal);
+        } catch (error) {
+            console.error("Error al cargar la foto local:", error);
+            // Continuar sin foto si falla
+        }
+    }
+
     const previewContent = document.getElementById('printPreviewContent');
     previewContent.innerHTML = generarHTMLCV();
     document.getElementById('printPreviewOverlay').classList.add('active');
     document.body.classList.add('preview-active');
 }
 
+// Función para precargar la imagen y evitar retrasos
+function precargarImagen(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = url;
+        img.onload = resolve;
+        img.onerror = reject;
+    });
+}
+
 // Cerrar vista previa
 function cerrarVistaPrevia() {
     document.getElementById('printPreviewOverlay').classList.remove('active');
     document.body.classList.remove('preview-active');
+    resetearEstilos();
+}
+
+// Resetear estilos al cerrar vista previa
+function resetearEstilos() {
+    colorPrincipal = '#3498db';
+    fuenteSeleccionada = "'Poppins', sans-serif";
+    
+    // Resetear selectores de personalización
+    document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
+    });
+    
+    document.querySelectorAll('.font-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
+    });
+    
+    actualizarEstilos();
+}
+
+// Imprimir currículum
+function imprimirCurriculum() {
+    const originalContent = document.getElementById('printPreviewContent').innerHTML;
+    const printContent = originalContent.replace(/<div class="print-preview-actions.*?<\/div>/gs, '');
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir CV</title>
+            <style>
+                body { margin: 0; padding: 0; }
+                @page { size: auto; margin: 0mm; }
+            </style>
+        </head>
+        <body>
+            ${printContent}
+            <script>
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                        window.close();
+                    }, 200);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 
 // Descargar PDF
@@ -464,7 +302,39 @@ async function descargarPDF() {
         // Crear elemento temporal
         const element = document.createElement('div');
         element.className = 'cv-template';
-        element.innerHTML = generarHTMLCV();
+        
+        // Obtener el HTML del CV
+        let cvHTML = generarHTMLCV();
+        
+        // Si hay foto de perfil, usar la local si está disponible (más rápido)
+        if (fotoPerfilLocal) {
+            try {
+                const base64Image = await convertirImagenABase64(fotoPerfilLocal);
+                cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
+            } catch (error) {
+                console.error("Error al convertir la imagen local:", error);
+                // Intentar con la de ImgBB si hay
+                if (fotoPerfilUrl) {
+                    try {
+                        const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+                        cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+                    } catch (error) {
+                        console.error("Error al convertir la imagen de ImgBB:", error);
+                        // Continuar sin la imagen si hay error
+                    }
+                }
+            }
+        } else if (fotoPerfilUrl) {
+            try {
+                const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+                cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+            } catch (error) {
+                console.error("Error al convertir la imagen:", error);
+                // Continuar sin la imagen si hay error
+            }
+        }
+        
+        element.innerHTML = cvHTML;
         document.body.appendChild(element);
 
         // Configuración de html2pdf
@@ -477,7 +347,9 @@ async function descargarPDF() {
                 letterRendering: true,
                 useCORS: true,
                 scrollX: 0,
-                scrollY: 0
+                scrollY: 0,
+                allowTaint: true,
+                proxy: 'https://cors-anywhere.herokuapp.com/'
             },
             jsPDF: { 
                 unit: 'mm', 
@@ -496,6 +368,32 @@ async function descargarPDF() {
         console.error("Error al generar PDF:", error);
         alert("Ocurrió un error al generar el PDF. Por favor, inténtalo de nuevo.");
     }
+}
+
+// Función para convertir imagen URL a Base64
+function convertirImagenABase64(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            
+            // Convertir a base64
+            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+            resolve(dataURL);
+        };
+        
+        img.onerror = error => {
+            reject(error);
+        };
+        
+        img.src = url;
+    });
 }
 
 // Generar HTML para el CV
@@ -517,6 +415,426 @@ function generarHTMLCV() {
     }
 }
 
+// Función para generar el HTML de la foto de perfil
+function generarFotoPerfilHTML() {
+    // Usar la foto local si está disponible (más rápido), sino usar la de ImgBB
+    const fotoParaMostrar = fotoPerfilLocal || fotoPerfilUrl;
+    if (!fotoParaMostrar) return '';
+    
+    return `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${fotoParaMostrar}" 
+                 style="max-width: 150px; max-height: 150px; border-radius: 50%; 
+                        border: 4px solid ${colorPrincipal}; object-fit: cover;">
+        </div>
+    `;
+}
+
+// Nuevo formato profesional
+function generarFormatoProfesional() {
+    const datosBasicos = obtenerDatosBasicos();
+    const estudios = obtenerEstudios();
+    const experiencia = obtenerSeccion('Experiencia', true);
+    const habilidades = obtenerSeccion('Habilidades', true);
+    const cursos = obtenerSeccion('Cursos', true);
+    const fotoPerfil = generarFotoPerfilHTML();
+
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Currículum Vitae</title>
+            <style>
+                body {
+                    font-family: ${fuenteSeleccionada};
+                    margin: 0;
+                    padding: 0;
+                    color: #333;
+                    line-height: 1.6;
+                }
+                .cv-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background: white;
+                }
+                .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 3px solid ${colorPrincipal};
+                }
+                .name-title {
+                    flex: 2;
+                }
+                .photo-placeholder {
+                    width: 120px;
+                    height: 120px;
+                    background: #f5f5f5;
+                    border: 2px solid ${colorPrincipal};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #999;
+                    font-size: 14px;
+                }
+                h1 {
+                    color: ${colorPrincipal};
+                    margin: 0;
+                    font-size: 32px;
+                    font-weight: 700;
+                }
+                .title {
+                    color: #666;
+                    font-size: 18px;
+                    margin-top: 5px;
+                }
+                .contact-info {
+                    margin-top: 15px;
+                }
+                .contact-item {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 5px;
+                    font-size: 14px;
+                }
+                .contact-item i {
+                    color: ${colorPrincipal};
+                    width: 20px;
+                    text-align: center;
+                    margin-right: 8px;
+                }
+                .section {
+                    margin-bottom: 25px;
+                }
+                .section-title {
+                    color: ${colorPrincipal};
+                    font-size: 20px;
+                    font-weight: 600;
+                    margin-bottom: 15px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    border-bottom: 1px solid #eee;
+                    padding-bottom: 5px;
+                }
+                .section-content {
+                    font-size: 14px;
+                }
+                .info-grid {
+                    display: grid;
+                    grid-template-columns: 150px 1fr;
+                    gap: 15px;
+                }
+                .info-label {
+                    font-weight: bold;
+                    color: #555;
+                }
+                .info-value {
+                    color: #333;
+                }
+                ul {
+                    padding-left: 20px;
+                    margin: 10px 0;
+                }
+                li {
+                    margin-bottom: 8px;
+                }
+                .skills-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                }
+                .skill-item {
+                    background: ${colorPrincipal}15;
+                    border: 1px solid ${colorPrincipal}30;
+                    padding: 5px 12px;
+                    border-radius: 20px;
+                    font-size: 13px;
+                }
+                .experience-item {
+                    margin-bottom: 20px;
+                }
+                .experience-title {
+                    font-weight: 600;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                .experience-date {
+                    color: #666;
+                    font-size: 13px;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                        background: white;
+                    }
+                    .cv-container {
+                        padding: 20px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="cv-container">
+                ${fotoPerfil}
+                <div class="header">
+                    <div class="name-title">
+                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                        <div class="title">Profesional</div>
+                        <div class="contact-info">
+                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                ${datosBasicos ? `<div class="section">
+                    <div class="section-title">Información Personal</div>
+                    <div class="section-content">
+                        <div class="info-grid">
+                            ${datosBasicos}
+                        </div>
+                    </div>
+                </div>` : ''}
+                
+                ${estudios ? `<div class="section">
+                    <div class="section-title">Formación Académica</div>
+                    <div class="section-content">
+                        ${estudios}
+                    </div>
+                </div>` : ''}
+                
+                ${experiencia ? `<div class="section">
+                    <div class="section-title">Experiencia Profesional</div>
+                    <div class="section-content">
+                        ${experiencia.split('<li>').filter(item => item).map(item => 
+                            `<div class="experience-item">
+                                <div class="experience-content">${item.replace('</li>', '')}</div>
+                            </div>`
+                        ).join('')}
+                    </div>
+                </div>` : ''}
+                
+                ${habilidades ? `<div class="section">
+                    <div class="section-title">Habilidades</div>
+                    <div class="section-content">
+                        <div class="skills-container">
+                            ${habilidades.split('<li>').filter(item => item).map(item => 
+                                `<div class="skill-item">${item.replace('</li>', '')}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>` : ''}
+                
+                ${cursos ? `<div class="section">
+                    <div class="section-title">Cursos y Certificaciones</div>
+                    <div class="section-content">
+                        <ul>${cursos}</ul>
+                    </div>
+                </div>` : ''}
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// Nuevo formato minimalista
+function generarFormatoMinimalista() {
+    const datosBasicos = obtenerDatosBasicos();
+    const estudios = obtenerEstudios();
+    const experiencia = obtenerSeccion('Experiencia', true);
+    const habilidades = obtenerSeccion('Habilidades', true);
+    const cursos = obtenerSeccion('Cursos', true);
+    const fotoPerfil = generarFotoPerfilHTML();
+
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Currículum Vitae</title>
+            <style>
+                body {
+                    font-family: ${fuenteSeleccionada};
+                    margin: 0;
+                    padding: 0;
+                    color: #333;
+                    line-height: 1.8;
+                    background: #f9f9f9;
+                }
+                .cv-container {
+                    max-width: 700px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background: white;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 40px;
+                }
+                h1 {
+                    color: ${colorPrincipal};
+                    margin: 0;
+                    font-size: 36px;
+                    font-weight: 300;
+                    letter-spacing: 2px;
+                }
+                .subtitle {
+                    color: #999;
+                    font-size: 16px;
+                    margin-top: 10px;
+                    letter-spacing: 1px;
+                }
+                .contact-info {
+                    margin-top: 20px;
+                    display: flex;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                    gap: 20px;
+                }
+                .contact-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 14px;
+                    color: #666;
+                }
+                .contact-item i {
+                    color: ${colorPrincipal};
+                }
+                .section {
+                    margin-bottom: 30px;
+                }
+                .section-title {
+                    color: ${colorPrincipal};
+                    font-size: 18px;
+                    font-weight: 400;
+                    margin-bottom: 15px;
+                    text-transform: uppercase;
+                    letter-spacing: 3px;
+                }
+                .section-content {
+                    font-size: 15px;
+                    color: #555;
+                    line-height: 1.8;
+                }
+                .info-item {
+                    margin-bottom: 15px;
+                }
+                .info-item strong {
+                    display: block;
+                    color: #333;
+                    margin-bottom: 5px;
+                }
+                ul {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                }
+                li {
+                    margin-bottom: 15px;
+                    padding-left: 20px;
+                    position: relative;
+                }
+                li:before {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    top: 10px;
+                    width: 10px;
+                    height: 2px;
+                    background: ${colorPrincipal};
+                }
+                .education-item {
+                    margin-bottom: 20px;
+                }
+                .education-item:last-child {
+                    margin-bottom: 0;
+                }
+                .skills {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                }
+                .skill {
+                    padding: 5px 15px;
+                    background: ${colorPrincipal}10;
+                    color: ${colorPrincipal};
+                    font-size: 14px;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                        background: white;
+                    }
+                    .cv-container {
+                        box-shadow: none;
+                        padding: 30px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="cv-container">
+                ${fotoPerfil}
+                <div class="header">
+                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                    <div class="contact-info">
+                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                    </div>
+                </div>
+                
+                ${datosBasicos ? `<div class="section">
+                    <div class="section-title">Sobre mí</div>
+                    <div class="section-content">
+                        ${datosBasicos}
+                    </div>
+                </div>` : ''}
+                
+                ${estudios ? `<div class="section">
+                    <div class="section-title">Educación</div>
+                    <div class="section-content">
+                        ${estudios}
+                    </div>
+                </div>` : ''}
+                
+                ${experiencia ? `<div class="section">
+                    <div class="section-title">Experiencia</div>
+                    <div class="section-content">
+                        <ul>${experiencia}</ul>
+                    </div>
+                </div>` : ''}
+                
+                ${habilidades ? `<div class="section">
+                    <div class="section-title">Habilidades</div>
+                    <div class="section-content">
+                        <div class="skills">
+                            ${habilidades.split('<li>').filter(item => item).map(item => 
+                                `<div class="skill">${item.replace('</li>', '')}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>` : ''}
+                
+                ${cursos ? `<div class="section">
+                    <div class="section-title">Cursos</div>
+                    <div class="section-content">
+                        <ul>${cursos}</ul>
+                    </div>
+                </div>` : ''}
+            </div>
+        </body>
+        </html>
+    `;
+}
+
 // Formato Creativo (predeterminado)
 function generarFormatoCreativo() {
     const datosBasicos = obtenerDatosBasicos();
@@ -524,6 +842,7 @@ function generarFormatoCreativo() {
     const experiencia = obtenerSeccion('Experiencia', true);
     const habilidades = obtenerSeccion('Habilidades', true);
     const cursos = obtenerSeccion('Cursos', true);
+    const fotoPerfil = generarFotoPerfilHTML();
 
     return `
         <!DOCTYPE html>
@@ -563,9 +882,6 @@ function generarFormatoCreativo() {
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
                 }
                 .header::after {
                     content: "";
@@ -576,20 +892,6 @@ function generarFormatoCreativo() {
                     width: 100px;
                     height: 3px;
                     background: ${colorPrincipal};
-                }
-                .photo-container {
-                    width: 150px;
-                    height: 150px;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    margin-bottom: 20px;
-                    border: 4px solid ${colorPrincipal};
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-                }
-                .photo-container img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -680,12 +982,8 @@ function generarFormatoCreativo() {
         </head>
         <body>
             <div class="cv-container">
+                ${fotoPerfil}
                 <div class="header">
-                    ${fotoPerfilBase64 ? `
-                    <div class="photo-container">
-                        <img src="${fotoPerfilBase64}" alt="Foto de perfil">
-                    </div>
-                    ` : ''}
                     <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                     <div class="contact-info">
                         ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
@@ -728,6 +1026,364 @@ function generarFormatoCreativo() {
     `;
 }
 
+// Formato Moderno
+function generarFormatoModerno() {
+    const datosBasicos = obtenerDatosBasicos();
+    const estudios = obtenerEstudios();
+    const experiencia = obtenerSeccion('Experiencia', true);
+    const habilidades = obtenerSeccion('Habilidades', true);
+    const cursos = obtenerSeccion('Cursos', true);
+    const fotoPerfil = generarFotoPerfilHTML();
+
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Currículum Vitae</title>
+            <style>
+                body {
+                    font-family: ${fuenteSeleccionada};
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                    line-height: 1.6;
+                }
+                .cv-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 30px;
+                    background: white;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+                    position: relative;
+                }
+                .header {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid ${colorPrincipal};
+                }
+                .name-container {
+                    flex-grow: 1;
+                }
+                h1 {
+                    color: ${colorPrincipal};
+                    margin: 0;
+                    font-size: 32px;
+                    font-weight: 700;
+                }
+                .contact-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+                .contact-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 14px;
+                }
+                .contact-item i {
+                    color: ${colorPrincipal};
+                    width: 20px;
+                    text-align: center;
+                }
+                .two-columns {
+                    display: grid;
+                    grid-template-columns: 1fr 2fr;
+                    gap: 30px;
+                }
+                .left-column {
+                    border-right: 1px solid #eee;
+                    padding-right: 20px;
+                }
+                .section {
+                    margin-bottom: 25px;
+                }
+                .section-title {
+                    color: ${colorPrincipal};
+                    font-size: 20px;
+                    margin-bottom: 15px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .section-content {
+                    font-size: 14px;
+                }
+                .info-item {
+                    margin-bottom: 10px;
+                }
+                .info-item strong {
+                    display: block;
+                    color: #444;
+                }
+                ul {
+                    padding-left: 20px;
+                    margin: 10px 0;
+                }
+                li {
+                    margin-bottom: 8px;
+                }
+                .skills {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .skill {
+                    background: ${colorPrincipal}22;
+                    color: ${colorPrincipal};
+                    padding: 5px 10px;
+                    border-radius: 15px;
+                    font-size: 13px;
+                }
+                .education-item {
+                    margin-bottom: 15px;
+                }
+                .education-item:last-child {
+                    margin-bottom: 0;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                        background: white;
+                    }
+                    .cv-container {
+                        box-shadow: none;
+                        padding: 15px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="cv-container">
+                ${fotoPerfil}
+                <div class="header">
+                    <div class="name-container">
+                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                    </div>
+                    <div class="contact-info">
+                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                    </div>
+                </div>
+                
+                <div class="two-columns">
+                    <div class="left-column">
+                        ${datosBasicos ? `<div class="section">
+                            <div class="section-title">Datos Personales</div>
+                            <div class="section-content">
+                                ${datosBasicos}
+                            </div>
+                        </div>` : ''}
+                        
+                        ${habilidades ? `<div class="section">
+                            <div class="section-title">Habilidades</div>
+                            <div class="section-content">
+                                <div class="skills">
+                                    ${habilidades.split('<li>').filter(item => item).map(item => 
+                                        `<div class="skill">${item.replace('</li>', '')}</div>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                    
+                    <div class="right-column">
+                        ${estudios ? `<div class="section">
+                            <div class="section-title">Educación</div>
+                            <div class="section-content">
+                                <div class="education-items">
+                                    ${estudios}
+                                </div>
+                            </div>
+                        </div>` : ''}
+                        
+                        ${experiencia ? `<div class="section">
+                            <div class="section-title">Experiencia</div>
+                            <div class="section-content">
+                                <ul>${experiencia}</ul>
+                            </div>
+                        </div>` : ''}
+                        
+                        ${cursos ? `<div class="section">
+                            <div class="section-title">Cursos</div>
+                            <div class="section-content">
+                                <ul>${cursos}</ul>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// Formato Clásico
+function generarFormatoClasico() {
+    const datosBasicos = obtenerDatosBasicos();
+    const estudios = obtenerEstudios();
+    const experiencia = obtenerSeccion('Experiencia', true);
+    const habilidades = obtenerSeccion('Habilidades', true);
+    const cursos = obtenerSeccion('Cursos', true);
+    const fotoPerfil = generarFotoPerfilHTML();
+
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Currículum Vitae</title>
+            <style>
+                body {
+                    font-family: ${fuenteSeleccionada};
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                    line-height: 1.8;
+                }
+                .cv-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 30px;
+                    background: white;
+                    border: 1px solid #ddd;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid ${colorPrincipal};
+                }
+                h1 {
+                    color: ${colorPrincipal};
+                    margin: 0;
+                    font-size: 28px;
+                    text-transform: uppercase;
+                }
+                .contact-info {
+                    margin-top: 10px;
+                    font-size: 14px;
+                }
+                .section {
+                    margin-bottom: 20px;
+                }
+                .section-title {
+                    background: ${colorPrincipal};
+                    color: white;
+                    padding: 5px 10px;
+                    font-size: 18px;
+                    margin-bottom: 10px;
+                }
+                .section-content {
+                    padding: 0 10px;
+                }
+                .info-row {
+                    display: flex;
+                    margin-bottom: 12px;
+                }
+                .info-label {
+                    font-weight: bold;
+                    width: 150px;
+                }
+                .info-value {
+                    flex-grow: 1;
+                }
+                ul {
+                    padding-left: 20px;
+                    margin: 10px 0;
+                }
+                li {
+                    margin-bottom: 8px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 10px 0;
+                }
+                table td {
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    vertical-align: top;
+                }
+                table tr:first-child td {
+                    font-weight: bold;
+                    background: #f5f5f5;
+                }
+                .education-item {
+                    margin-bottom: 15px;
+                }
+                .education-item:last-child {
+                    margin-bottom: 0;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                        background: white;
+                    }
+                    .cv-container {
+                        border: none;
+                        padding: 15px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="cv-container">
+                ${fotoPerfil}
+                <div class="header">
+                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                    <div class="contact-info">
+                        ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
+                        ${document.getElementById('Telefono').value ? `<span>${document.getElementById('Telefono').value}</span> | ` : ''}
+                        ${document.getElementById('Direccion').value ? `<span>${document.getElementById('Direccion').value}</span>` : ''}
+                    </div>
+                </div>
+                
+                ${datosBasicos ? `<div class="section">
+                    <div class="section-title">Datos Personales</div>
+                    <div class="section-content">
+                        ${datosBasicos}
+                    </div>
+                </div>` : ''}
+                
+                ${estudios ? `<div class="section">
+                    <div class="section-title">Formación Académica</div>
+                    <div class="section-content">
+                        <div class="education-items">
+                            ${estudios}
+                        </div>
+                    </div>
+                </div>` : ''}
+                
+                ${experiencia ? `<div class="section">
+                    <div class="section-title">Experiencia Laboral</div>
+                    <div class="section-content">
+                        <ul>${experiencia}</ul>
+                    </div>
+                </div>` : ''}
+                
+                ${habilidades ? `<div class="section">
+                    <div class="section-title">Habilidades</div>
+                    <div class="section-content">
+                        <ul>${habilidades}</ul>
+                    </div>
+                </div>` : ''}
+                
+                ${cursos ? `<div class="section">
+                    <div class="section-title">Cursos y Certificaciones</div>
+                    <div class="section-content">
+                        <ul>${cursos}</ul>
+                    </div>
+                </div>` : ''}
+            </div>
+        </body>
+        </html>
+    `;
+}
+
 // Obtener datos básicos formateados
 function obtenerDatosBasicos() {
     let html = '';
@@ -743,10 +1399,8 @@ function obtenerDatosBasicos() {
         if (valor) {
             let valorMostrar = valor;
             if (campo.id === 'FechaNacimiento') {
-                const partes = valor.split('-');
-                if (partes.length === 3) {
-                    valorMostrar = `${partes[2]}/${partes[1]}/${partes[0]}`;
-                }
+                const fecha = new Date(valor);
+                valorMostrar = fecha.toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: 'numeric'});
             }
             html += `<div class="info-item"><i class="fas fa-${campo.icono}"></i> <strong>${campo.nombre}:</strong> ${valorMostrar}</div>`;
         }
@@ -763,6 +1417,7 @@ function obtenerEstudios() {
         { id: 'EducacionSecundaria', nombre: 'Educación Secundaria', icono: 'graduation-cap' }
     ];
 
+    // Educación primaria y secundaria
     estudios.forEach(estudio => {
         const valor = document.getElementById(estudio.id).value;
         if (valor) {
@@ -770,11 +1425,13 @@ function obtenerEstudios() {
         }
     });
 
+    // Educación superior (solo mostrar el título una vez)
     const educacionSuperior = document.getElementById('EducacionSuperior').value;
     if (educacionSuperior) {
         html += `<div class="education-item"><i class="fas fa-university"></i> <strong>Educación Superior:</strong> ${educacionSuperior}</div>`;
     }
 
+    // Campos adicionales de educación superior (sin título)
     const inputsSuperior = document.getElementById('EducacionSuperiorCampos').getElementsByTagName('input');
     for (let i = 0; i < inputsSuperior.length; i++) {
         if (inputsSuperior[i].value) {
@@ -803,22 +1460,264 @@ function obtenerSeccion(id, comoLista = false) {
     return html || null;
 }
 
+// Guardar datos en Firebase e ImgBB
+async function guardarDatos(mostrarAlerta = true) {
+    const nombres = document.getElementById("Nombres").value;
+    const apellidos = document.getElementById("Apellidos").value;
+    
+    if (!nombres || !apellidos) {
+        return false;
+    }
+
+    // Si ya tenemos la URL de ImgBB (subida en segundo plano), usarla
+    // Si no, pero tenemos foto local, subirla ahora
+    const fotoInput = document.getElementById('FotoPerfil');
+    if (!fotoPerfilUrl && fotoInput.files.length > 0 && !fotoPerfilLocal) {
+        const formData = new FormData();
+        formData.append('image', fotoInput.files[0]);
+        
+        try {
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (data.success) {
+                fotoPerfilUrl = data.data.url;
+                fotoPerfilId = data.data.id;
+            }
+        } catch (error) {
+            console.error("Error al subir la foto:", error);
+            if (mostrarAlerta) {
+                alert("Error al subir la foto, pero los demás datos se guardaron");
+            }
+        }
+    }
+
+    const datos = {
+        nombres,
+        apellidos,
+        colorPrincipal,
+        fuenteSeleccionada,
+        fotoPerfilUrl,
+        fotoPerfilId,
+        campos: {},
+        fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Guardar campos estáticos
+    document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
+        if (campo.id && campo.id !== 'FotoPerfil') datos.campos[campo.id] = campo.value;
+    });
+
+    // Guardar campos dinámicos
+    ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
+        datos.campos[id] = [];
+        const inputs = document.getElementById(id).getElementsByTagName('input');
+        for (let input of inputs) {
+            datos.campos[id].push(input.value);
+        }
+    });
+
+    // Guardar en Firebase
+    try {
+        const db = firebase.firestore();
+        let docRef;
+        
+        // Buscar si ya existe un CV con el mismo nombre y apellido
+        const querySnapshot = await db.collection('curriculums')
+            .where('nombres', '==', nombres)
+            .where('apellidos', '==', apellidos)
+            .limit(1)
+            .get();
+        
+        if (!querySnapshot.empty) {
+            // Actualizar documento existente
+            docRef = querySnapshot.docs[0].ref;
+            await docRef.update(datos);
+        } else {
+            // Crear nuevo documento
+            docRef = await db.collection('curriculums').add(datos);
+        }
+        
+        if (mostrarAlerta) {
+            alert(`CV de ${nombres} ${apellidos} guardado correctamente`);
+        }
+    } catch (error) {
+        console.error("Error al guardar en Firebase:", error);
+        if (mostrarAlerta) {
+            alert("Error al guardar en la base de datos");
+        }
+        return false;
+    }
+    
+    cargarCVsGuardados();
+    return true;
+}
+
+// Cargar CVs guardados desde Firebase
+async function cargarCVsGuardados() {
+    try {
+        const db = firebase.firestore();
+        const querySnapshot = await db.collection('curriculums')
+            .orderBy('fechaActualizacion', 'desc')
+            .get();
+        
+        const lista = document.getElementById('savedCvsList');
+        
+        if (querySnapshot.empty) {
+            lista.innerHTML = '<p style="text-align: center; color: #666;">No hay CVs guardados</p>';
+            return;
+        }
+        
+        let html = '';
+        querySnapshot.forEach((doc, index) => {
+            const cv = doc.data();
+            html += `
+                <div class="saved-cv-item">
+                    <div class="saved-cv-content" onclick="cargarCV('${doc.id}')">
+                        <strong>${cv.nombres} ${cv.apellidos}</strong>
+                        <div>${cv.campos['Cedula'] || 'Sin cédula registrada'}</div>
+                    </div>
+                    <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        });
+        
+        lista.innerHTML = html;
+    } catch (error) {
+        console.error("Error al cargar CVs:", error);
+        document.getElementById('savedCvsList').innerHTML = 
+            '<p style="text-align: center; color: #666;">Error al cargar los CVs</p>';
+    }
+}
+
+// Eliminar CV de Firebase
+async function eliminarCV(id, event) {
+    event.stopPropagation();
+    
+    if (confirm('¿Estás seguro que deseas eliminar este currículum? Esta acción no se puede deshacer.')) {
+        try {
+            await firebase.firestore().collection('curriculums').doc(id).delete();
+            cargarCVsGuardados();
+        } catch (error) {
+            console.error("Error al eliminar CV:", error);
+            alert("Error al eliminar el currículum");
+        }
+    }
+}
+
+// Cargar un CV específico desde Firebase
+async function cargarCV(id) {
+    try {
+        const doc = await firebase.firestore().collection('curriculums').doc(id).get();
+        
+        if (!doc.exists) {
+            alert("El currículum no existe");
+            return;
+        }
+        
+        const cv = doc.data();
+        
+        // Limpiar formulario
+        limpiarFormulario();
+        
+        // Cargar datos básicos
+        document.getElementById('Nombres').value = cv.nombres || '';
+        document.getElementById('Apellidos').value = cv.apellidos || '';
+        
+        // Cargar otros campos
+        for (const id in cv.campos) {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.value = cv.campos[id] || '';
+            }
+        }
+        
+        // Cargar campos dinámicos
+        ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
+            const div = document.getElementById(id);
+            if (div && cv.campos[id]) {
+                div.innerHTML = '';
+                cv.campos[id].forEach(valor => {
+                    if (valor) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = valor;
+                        input.style.marginTop = '5px';
+                        
+                        const removeBtn = document.createElement('span');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.innerHTML = '(-)';
+                        removeBtn.onclick = function() {
+                            div.removeChild(input);
+                            div.removeChild(removeBtn);
+                            div.removeChild(document.createElement('br'));
+                        };
+                        
+                        div.appendChild(input);
+                        div.appendChild(removeBtn);
+                        div.appendChild(document.createElement('br'));
+                    }
+                });
+            }
+        });
+        
+        // Cargar personalización
+        colorPrincipal = cv.colorPrincipal || '#3498db';
+        fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
+        fotoPerfilUrl = cv.fotoPerfilUrl || null;
+        fotoPerfilLocal = null; // Resetear la foto local al cargar desde la base de datos
+        fotoPerfilId = cv.fotoPerfilId || null;
+        
+        // Mostrar foto si existe
+        if (fotoPerfilUrl) {
+            document.getElementById('fotoPreview').src = fotoPerfilUrl;
+            document.getElementById('fotoPreviewContainer').style.display = 'block';
+        }
+        
+        actualizarEstilos();
+        
+        // Actualizar selectores
+        document.querySelectorAll('.color-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
+        });
+        
+        document.querySelectorAll('.font-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
+        });
+        
+        toggleAgenda();
+    } catch (error) {
+        console.error("Error al cargar CV:", error);
+        alert("Error al cargar el currículum");
+    }
+}
+
 // Formateador de cédula
 document.getElementById('Cedula').addEventListener('input', function(e) {
     const input = e.target;
     const startPos = input.selectionStart;
     const cursorWasAtEnd = (startPos === input.value.length);
     
+    // Obtener valor sin el "V-" inicial
     let value = input.value.replace(/^V-/, '').replace(/\./g, '');
+    
+    // Solo permitir números
     value = value.replace(/\D/g, '');
     
+    // Agregar separadores de miles
     if (value.length > 3) {
         value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
     
+    // Reconstruir el valor con "V-" y mantener la posición del cursor
     input.value = value ? 'V-' + value : '';
     
     if (!cursorWasAtEnd) {
+        // Ajustar posición del cursor si no estaba al final
         const adjustedPos = startPos - (input.value.length - e.target.value.length);
         input.setSelectionRange(adjustedPos, adjustedPos);
     }
@@ -831,4 +1730,3 @@ document.getElementById('Cedula').addEventListener('blur', function(e) {
         e.target.focus();
     }
 });
-
