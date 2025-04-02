@@ -1411,8 +1411,13 @@ function obtenerDatosBasicos() {
         if (valor) {
             let valorMostrar = valor;
             if (campo.id === 'FechaNacimiento') {
-                const fecha = new Date(valor);
-                valorMostrar = fecha.toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                // Solución: Parsear la fecha sin ajuste de zona horaria
+                const [year, month, day] = valor.split('-');
+                valorMostrar = `${day}/${month}/${year}`;
+                
+                // Otra opción (si prefieres formato con nombre de mes):
+                // const fecha = new Date(`${year}-${month}-${day}T12:00:00`);
+                // valorMostrar = fecha.toLocaleDateString('es-ES', {day: '2-digit', month: 'long', year: 'numeric'});
             }
             html += `<div class="info-item"><i class="fas fa-${campo.icono}"></i> <strong>${campo.nombre}:</strong> ${valorMostrar}</div>`;
         }
