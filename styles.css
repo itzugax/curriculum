@@ -1,41 +1,27 @@
 /* Reset y base del botón */
 button.close-btn {
-    all: unset; /* Reset total */
+    all: unset;
     box-sizing: border-box;
-    
-    /* Tamaño fijo */
     width: 32px;
     height: 32px;
     min-width: 32px;
     min-height: 32px;
-    
-    /* Fondo rojo vibrante */
     background-color: #ff4444;
     border-radius: 50%;
     cursor: pointer;
-    
-    /* Centrado perfecto */
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    /* Transición suave */
-    transition: all 0.2s ease;
-    
-    /* Sombra para profundidad */
+    transition: background-color 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Estilo hover */
 button.close-btn:hover {
     background-color: #ff0000;
-    transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-/* Estilo del icono "X" */
 button.close-btn i.fas.fa-times {
-    /* Tamaño y centrado perfecto */
     font-size: 16px;
     color: white;
     width: 16px;
@@ -43,24 +29,20 @@ button.close-btn i.fas.fa-times {
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    /* Ajuste fino de posición */
     margin: 0;
     padding: 0;
-    position: relative;
-    top: 0;
-    left: 0;
 }
+
 /* Estilos generales */
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: #f4f7f6;
     margin: 0;
     padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    background-color: #f4f7f6;
     color: #333;
 }
 
@@ -68,18 +50,63 @@ body.preview-active {
     overflow: hidden;
 }
 
-/* Al hover en botones */
-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+/* Contenedor principal */
+.main-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    max-width: 1400px;
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-/* Transición en inputs */
-input, select {
-    transition: all 0.3s ease;
+/* Formulario */
+.form-container {
+    width: 60%;
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(13, 54, 131, 0.589);
+    border: none !important;
 }
-input:focus {
-    transform: scale(1.02);
+
+/* Vista previa */
+.preview-container {
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+    height: fit-content;
+}
+
+
+.preview-header {
+    text-align: center;
+}
+
+.preview-header select {
+    width: 100%;
+    max-width: 200px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    background: white;
+}
+
+.preview-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    height: 842px;
+    width: 100%;
+    max-width: 595px;
+    margin: 0 auto;
 }
 
 /* Agenda lateral */
@@ -101,15 +128,15 @@ input:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease; /* Añade transición para movimiento suave */
+    transition: background-color 0.3s ease, left 0.3s ease;
 }
+
 .agenda-btn i.fas.fa-address-book {
-    font-size: 40px; /* Ajusta este valor a tu preferencia */
-    /* Mantén el resto de propiedades igual */
+    font-size: 40px;
 }
 
 .agenda-btn:hover {
-    transform: translateY(-50%) scale(1.1);
+    background: #2980b9;
 }
 
 .agenda-panel {
@@ -125,6 +152,7 @@ input:focus {
     padding: 20px;
     overflow-y: auto;
 }
+
 .agenda-panel.open {
     left: 0;
 }
@@ -152,43 +180,6 @@ input:focus {
     padding-bottom: 10px;
 }
 
-/* Contenedor principal */
-.form-container {
-    position: relative;
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(13, 54, 131, 0.589);
-    /* Elimina cualquier borde existente */
-    border: none !important;
-}
-
-/* Borde degradado animado (solo el borde) */
-.form-container::before {
-    content: '';
-    position: absolute;
-    top: -2px; /* Grosor del borde */
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    z-index: -1;
-    background: linear-gradient(45deg, 
-        #3498db, 
-        #1100ff, 
-        #35aeff, 
-        #12f3d5);
-    background-size: 300% 300%;
-    border-radius: 18px; /* Un poco más grande que el contenedor */
-    animation: gradientBorder 5s ease infinite;
-}
-
-/* Animación del degradado */
-@keyframes gradientBorder {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
 /* Títulos */
 h2 {
     text-align: center;
@@ -210,10 +201,6 @@ h2 {
     align-items: center;
 }
 
-.section-title i {
-    margin-right: 10px;
-}
-
 /* Personalización */
 .customization-panel {
     background: #f8f9fa;
@@ -231,16 +218,11 @@ h2 {
     align-items: center;
 }
 
-.customization-title i {
-    margin-right: 10px;
-    color: #3498db;
-}
-
 .color-options, .font-options {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .color-option {
@@ -248,35 +230,34 @@ h2 {
     height: 30px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: transform 0.2s;
+    transition: transform 0.3s ease;
 }
 
 .color-option:hover {
-    transform: scale(1.1);
+    transform: scale(1.2);
 }
 
 .color-option.selected {
-    border-color: #000;
-    transform: scale(1.1);
+    border: 2px solid #333;
+    box-shadow: 0 0 0 2px #fff inset;
 }
 
 .font-option {
     padding: 5px 10px;
+    border: 1px solid #ddd;
     border-radius: 5px;
-    background: #e0e0e0;
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+    transition: background-color 0.3s ease;
 }
 
 .font-option:hover {
-    background: #d0d0d0;
+    background-color: #e0e0e0;
 }
 
 .font-option.selected {
-    background: #3498db;
+    background-color: #3498db;
     color: white;
+    border-color: #3498db;
 }
 
 /* Formulario */
@@ -285,12 +266,6 @@ label {
     color: #34495e;
     display: block;
     margin-top: 15px;
-}
-
-label i {
-    margin-right: 8px;
-    width: 20px;
-    text-align: center;
 }
 
 input, select {
@@ -311,19 +286,6 @@ input:focus, select:focus {
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-/* Estilos para el input de foto */
-#FotoPerfil {
-    padding: 5px;
-    border: 1px dashed #3498db;
-    background-color: #f8f9fa;
-}
-
-#fotoPreview {
-    border: 3px solid #3498db;
-    padding: 5px;
-    background-color: white;
-}
-
 /* Botones */
 .button-group {
     display: flex;
@@ -340,134 +302,22 @@ button {
     cursor: pointer;
     font-size: 16px;
     font-weight: 500;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
 }
 
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-button i {
-    font-size: 18px;
-}
-
 button.primary {
     background: #3498db;
-}
-
-button.primary:hover {
-    background: #2980b9;
-}
-
-button.secondary {
-    background: #2ecc71;
-}
-
-button.secondary:hover {
-    background: #27ae60;
 }
 
 button.danger {
     background: #e74c3c;
 }
 
-button.danger:hover {
-    background: #c0392b;
-}
-
-button.warning {
-    background: #f39c12;
-}
-
-button.warning:hover {
-    background: #d35400;
-}
-
-/* Botones de agregar/eliminar */
-.add-btn, .remove-btn {
-    cursor: pointer;
-    font-weight: bold;
-    margin-left: 10px;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-}
-
-.add-btn {
-    color: #3498db;
-    background: rgba(52, 152, 219, 0.1);
-}
-
-.add-btn:hover {
-    color: white;
-    background: #3498db;
-}
-
-.remove-btn {
-    color: #e74c3c;
-    background: rgba(231, 76, 60, 0.1);
-}
-
-.remove-btn:hover {
-    color: white;
-    background: #e74c3c;
-}
-
-/* Campos dinámicos */
-#EducacionSuperiorCampos input,
-#Habilidades input,
-#Experiencia input,
-#Cursos input {
-    margin-top: 5px;
-}
-
 /* Lista de CVs guardados */
-#savedCvsList {
-    max-height: 70vh;
-    overflow-y: auto;
-    padding: 5px;
-}
-
-/* Nuevos estilos para botones de eliminar */
-.cv-delete-btn {
-    /* Tamaño fijo */
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    max-width: 30px;
-    max-height: 30px;
-    
-    /* Estilo visual */
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    
-    /* Centrado del icono */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* Espaciado */
-    margin-left: 10px;
-    padding: 0;
-    
-    /* Transición suave */
-    transition: all 0.2s ease;
-}
-
-/* Mejoras a los estilos de la agenda */
 .saved-cv-item {
     display: flex;
     align-items: center;
@@ -478,61 +328,48 @@ button.warning:hover {
     background: rgb(238, 238, 238);
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease;
     cursor: pointer;
-}
-
-.saved-cv-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.saved-cv-content {
-    flex-grow: 1;
-    min-width: 0;
-    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .saved-cv-content strong {
-    display: block;
     color: #2c3e50;
-    font-size: 15px;
-    margin-bottom: 3px;
 }
 
 .saved-cv-content div {
-    font-size: 13px;
     color: #7f8c8d;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .cv-delete-btn {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    min-height: 28px;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    max-width: 28px !important;
+    max-height: 28px !important;
+    background: #e74c3c !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
 }
 
 .cv-delete-btn:hover {
-    background: #c0392b;
-    transform: scale(1.1);
-    box-shadow: 0 3px 8px rgba(231, 76, 60, 0.4);
-}
-
-.cv-delete-btn i {
-    font-size: 12px;
+    background: #c0392b !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Vista previa de impresión */
@@ -575,138 +412,41 @@ button.warning:hover {
     align-items: center;
 }
 
-.print-preview-header h3 {
-    margin: 0;
-    font-size: 20px;
-}
-
-/* BOTÓN CERRAR - ESTILOS ACTUALIZADOS */
-/* Botón de cerrar - ESTILO DEFINITIVO */
-.close-btn {
-    /* Tamaño fijo e inalterable */
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    
-    /* Estilo visual */
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    
-    /* Centrado perfecto */
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    
-    /* Reset de estilos no deseados */
-    padding: 0 !important;
-    margin: 0 !important;
-    line-height: 1;
-    
-    /* Transición suave */
-    transition: all 0.2s ease;
-    
-    /* Posicionamiento */
-    position: relative;
-    flex-shrink: 0;
-}
-
-.close-btn:hover {
-    background: #c0392b;
-    transform: scale(1.1);
-}
-
-.close-btn i {
-    /* Tamaño fijo del icono */
-    font-size: 16px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .print-preview-content {
     padding: 20px;
     overflow-y: auto;
     flex-grow: 1;
 }
 
-.print-preview-actions {
-    padding: 15px 20px;
-    background: #f8f9fa;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    border-top: 1px solid #e0e0e0;
+/* Resto de estilos */
+.add-btn {
+    color: #3498db;
+    cursor: pointer;
+}
+
+.remove-btn {
+    color: #e74c3c;
+    cursor: pointer;
+}
+
+#savedCvsList {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 5px;
 }
 
 /* Diseño responsivo */
 @media (max-width: 768px) {
-    .form-container {
-        padding: 20px;
-        margin: 10px;
-    }
-
-    h2 {
-        font-size: 28px;
-    }
-
-    .section-title {
-        font-size: 20px;
-    }
-
-    input, select {
-        font-size: 13px;
-    }
-
-    button {
-        font-size: 15px;
-        padding: 10px;
-    }
-    
-    .button-group {
+    .main-container {
         flex-direction: column;
     }
-    
-    .agenda-panel {
-        width: 280px;
-    }
-    
-    .print-preview-container {
-        max-height: 80vh;
-    }
-    
-    .print-preview-actions {
-        flex-direction: column;
-    }
-}
 
-/* Estilos para impresión */
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    
-    .print-preview-content, .print-preview-content * {
-        visibility: visible;
-    }
-    
-    .print-preview-content {
-        position: absolute;
-        left: 0;
-        top: 0;
+    .form-container, .preview-container {
         width: 100%;
-        margin: 0;
-        padding: 20px;
     }
-    
-    .no-print {
-        display: none !important;
+
+    .preview-content {
+        width: 100%;
+        height: auto;
     }
 }

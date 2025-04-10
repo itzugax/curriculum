@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Currículos</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Playfair+Display:wght@700&family=Quicksand:wght@500&family=Raleway:wght@500&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Poppins:wght@400;600&family=Playfair+Display:wght@700&family=Quicksand:wght@500&family=Raleway:wght@500&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
     <style>
         @import url('https://fonts.cdnfonts.com/css/comic-sans-ms');
     </style>
@@ -21,7 +20,7 @@
     <button class="agenda-btn" onclick="toggleAgenda()">
         <i class="fas fa-address-book"></i>
     </button>
-    
+
     <!-- Panel de agenda -->
     <div class="agenda-overlay" id="agendaOverlay" onclick="toggleAgenda()"></div>
     <div class="agenda-panel" id="agendaPanel">
@@ -30,130 +29,137 @@
     </div>
 
     <!-- Contenedor principal -->
-    <div class="form-container">
-        <h2>Generador de Currículum</h2>
-        
-        <!-- Panel de personalización -->
-        <div class="customization-panel">
-            <div class="customization-title">
-                <i class="fas fa-palette"></i> Personaliza tu CV
-            </div>
-            
-            <label>Color principal:</label>
-            <div class="color-options">
-                <div class="color-option selected" style="background: #006eff;" data-color="#3498db"></div>
-                <div class="color-option" style="background: #e74c3c;" data-color="#e74c3c"></div>
-                <div class="color-option" style="background: #2ecc71;" data-color="#2ecc71"></div>
-                <div class="color-option" style="background: #9b59b6;" data-color="#9b59b6"></div>
-                <div class="color-option" style="background: #f39c12;" data-color="#f39c12"></div>
-                <div class="color-option" style="background: #1abc9c;" data-color="#1abc9c"></div>
-                <div class="color-option" style="background: #34495e;" data-color="#34495e"></div>
-                <div class="color-option" style="background: #e84393;" data-color="#e84393"></div>
-                <div class="color-option" style="background: #1d1a9b;" data-color="#1d1a9b"></div>
-                <div class="color-option" style="background: #6c5ce7;" data-color="#6c5ce7"></div>
-            </div>
-            
-            <label>Tipografía:</label>
-            <div class="font-options">
-                <div class="font-option selected" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
-                <div class="font-option" data-font="'Montserrat', sans-serif" style="font-family: 'Montserrat', sans-serif">Montserrat</div>
-                <div class="font-option" data-font="'Open Sans', sans-serif" style="font-family: 'Open Sans', sans-serif">Open Sans</div>
-                <div class="font-option" data-font="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins</div>
-                <div class="font-option" data-font="'Playfair Display', serif" style="font-family: 'Playfair Display', serif">Playfair</div>
-                <div class="font-option" data-font="'Quicksand', sans-serif" style="font-family: 'Quicksand', sans-serif">Quicksand</div>
-                <div class="font-option" data-font="'Raleway', sans-serif" style="font-family: 'Raleway', sans-serif">Raleway</div>
-                <div class="font-option" data-font="'Source Sans Pro', sans-serif" style="font-family: 'Source Sans Pro', sans-serif">Source Sans</div>
-            </div>
-        </div>
-        
+    <div class="main-container">
         <!-- Formulario -->
-        <form id="cvForm">
-            <!-- Sección de datos personales -->
-            <div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
+        <div class="form-container">
+            <h2>Generador de Currículum</h2>
             
-            <label><i class="fas fa-signature"></i> Nombres:</label>
-            <input type="text" id="Nombres" placeholder="Ej: Carmen María" required>
-
-            <label><i class="fas fa-signature"></i> Apellidos:</label>
-            <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
-
-            <label><i class="fas fa-id-card"></i> Cédula:</label>
-            <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
-
-            <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
-            <input type="date" id="FechaNacimiento">
-
-            <label><i class="fas fa-map-marker-alt"></i> Dirección:</label>
-            <input type="text" id="Direccion" placeholder="Ej: El Pilar, municipio Benítez">
-
-            <label><i class="fas fa-venus-mars"></i> Sexo:</label>
-            <select id="Sexo" onchange="actualizarDatos()">
-                <option value="">Seleccionar</option>
-                <option value="Femenino">Femenino</option>
-                <option value="Masculino">Masculino</option>
-                <option value="Otro">Otro</option>
-            </select>
-
-            <label><i class="fas fa-heart"></i> Estado civil:</label>
-            <select id="EstadoCivil"></select>
-
-            <label><i class="fas fa-envelope"></i> Correo electrónico:</label>
-            <input type="email" id="Email" placeholder="Ej: micorreo@gmail.com">
-
-            <label><i class="fas fa-phone"></i> Teléfono:</label>
-            <input type="tel" id="Telefono" placeholder="Ej: 0412-5681421">
-
-            <label><i class="fas fa-camera"></i> Foto de perfil:</label>
-            <input type="file" id="FotoPerfil" accept="image/*">
-            <div id="fotoPreviewContainer" style="display: none; margin-top: 10px;">
-                <img id="fotoPreview" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+            <!-- Panel de personalización -->
+            <div class="customization-panel">
+                <div class="customization-title">
+                    <i class="fas fa-palette"></i> Personaliza tu CV
+                </div>
+                
+                <label>Color principal:</label>
+                <div class="color-options">
+                    <div class="color-option selected" style="background: #006eff;" data-color="#3498db"></div>
+                    <div class="color-option" style="background: #e74c3c;" data-color="#e74c3c"></div>
+                    <div class="color-option" style="background: #2ecc71;" data-color="#2ecc71"></div>
+                    <div class="color-option" style="background: #9b59b6;" data-color="#9b59b6"></div>
+                    <div class="color-option" style="background: #f39c12;" data-color="#f39c12"></div>
+                    <div class="color-option" style="background: #1abc9c;" data-color="#1abc9c"></div>
+                    <div class="color-option" style="background: #34495e;" data-color="#34495e"></div>
+                    <div class="color-option" style="background: #e84393;" data-color="#e84393"></div>
+                    <div class="color-option" style="background: #1d1a9b;" data-color="#1d1a9b"></div>
+                    <div class="color-option" style="background: #6c5ce7;" data-color="#6c5ce7"></div>
+                </div>
+                
+                <label>Tipografía:</label>
+                <div class="font-options">
+                    <div class="font-option" data-font="'Montserrat', sans-serif" style="font-family: 'Montserrat', sans-serif">Montserrat</div>
+                    <div class="font-option" data-font="'Open Sans', sans-serif" style="font-family: 'Open Sans', sans-serif">Open Sans</div>
+                    <div class="font-option" data-font="'Playfair Display', serif" style="font-family: 'Playfair Display', serif">Playfair Display</div>
+                    <div class="font-option selected" data-font="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins</div>
+                    <div class="font-option" data-font="'Quicksand', sans-serif" style="font-family: 'Quicksand', sans-serif">Quicksand</div>
+                    <div class="font-option" data-font="'Raleway', sans-serif" style="font-family: 'Raleway', sans-serif">Raleway</div>
+                    <div class="font-option" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
+                    <div class="font-option" data-font="'Source Sans Pro', sans-serif" style="font-family: 'Source Sans Pro', sans-serif">Source Sans Pro</div>
+                </div>
             </div>
-
-            <!-- Sección de educación -->
-            <div class="section-title"><i class="fas fa-graduation-cap"></i> Educación</div>
             
-            <label><i class="fas fa-school"></i> Primaria:</label>
-            <input type="text" id="EducacionPrimaria" placeholder="U.E. Cristobal Colón">
+            <!-- Formulario -->
+            <form id="cvForm">
+                <!-- Sección de datos personales -->
+                <div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
+                
+                <label><i class="fas fa-signature"></i> Nombres:</label>
+                <input type="text" id="Nombres" placeholder="Ej: Carmen María" required>
 
-            <label><i class="fas fa-school"></i> Secundaria:</label>
-            <input type="text" id="EducacionSecundaria" placeholder="L.B. Simon Rodríguez">
+                <label><i class="fas fa-signature"></i> Apellidos:</label>
+                <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
-            <label><i class="fas fa-university"></i> Superior: <span class="add-btn" onclick="agregarCampo('EducacionSuperior')">(+)</span></label>
-            <input type="text" id="EducacionSuperior" placeholder="Universidad o Instituto">
-            <div id="EducacionSuperiorCampos"></div>
+                <label><i class="fas fa-id-card"></i> Cédula:</label>
+                <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
 
-            <!-- Sección de experiencia -->
-            <div class="section-title"><i class="fas fa-briefcase"></i> Experiencia Laboral <span class="add-btn" onclick="agregarCampo('Experiencia')">(+)</span></div>
-            <div id="Experiencia"></div>
+                <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
+                <input type="date" id="FechaNacimiento">
 
-            <!-- Sección de habilidades -->
-            <div class="section-title"><i class="fas fa-star"></i> Habilidades <span class="add-btn" onclick="agregarCampo('Habilidades')">(+)</span></div>
-            <div id="Habilidades"></div>
+                <label><i class="fas fa-map-marker-alt"></i> Dirección:</label>
+                <input type="text" id="Direccion" placeholder="Ej: El Pilar, municipio Benítez">
 
-            <!-- Sección de cursos -->
-            <div class="section-title"><i class="fas fa-certificate"></i> Cursos <span class="add-btn" onclick="agregarCampo('Cursos')">(+)</span></div>
-            <div id="Cursos"></div>
+                <label><i class="fas fa-venus-mars"></i> Sexo:</label>
+                <select id="Sexo" onchange="actualizarDatos()">
+                    <option value="">Seleccionar</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Otro">Otro</option>
+                </select>
 
-            <!-- Selector de formato -->
-            <label><i class="fas fa-file-pdf"></i> Formato de CV:</label>
-            <select id="FormatoCV">
-                <option value="creativo" selected>Creativo</option>
-                <option value="moderno">Moderno</option>
-                <option value="clasico">Clásico</option>
-                <option value="profesional">Profesional</option>
-                <option value="minimalista">Minimalista</option>
-            </select>
+                <label><i class="fas fa-heart"></i> Estado civil:</label>
+                <select id="EstadoCivil"></select>
 
-            <!-- Botones de acción -->
-            <div class="button-group">
-                <button type="button" class="primary" onclick="generarCurriculum()">
-                    <i class="fas fa-file-alt"></i> Generar Currículum
-                </button>
-                <button type="button" class="danger" onclick="limpiarFormulario()">
-                    <i class="fas fa-trash-alt"></i> Limpiar
-                </button>
+                <label><i class="fas fa-envelope"></i> Correo electrónico:</label>
+                <input type="email" id="Email" placeholder="Ej: micorreo@gmail.com">
+
+                <label><i class="fas fa-phone"></i> Teléfono:</label>
+                <input type="tel" id="Telefono" placeholder="Ej: 0412-5681421">
+
+                <label><i class="fas fa-camera"></i> Foto de perfil:</label>
+                <input type="file" id="FotoPerfil" accept="image/*">
+                <div id="fotoPreviewContainer" style="display: none; margin-top: 10px;">
+                    <img id="fotoPreview" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+                </div>
+
+                <!-- Sección de educación -->
+                <div class="section-title"><i class="fas fa-graduation-cap"></i> Educación</div>
+                
+                <label><i class="fas fa-school"></i> Primaria:</label>
+                <input type="text" id="EducacionPrimaria" placeholder="U.E. Cristobal Colón">
+
+                <label><i class="fas fa-school"></i> Secundaria:</label>
+                <input type="text" id="EducacionSecundaria" placeholder="L.B. Simon Rodríguez">
+
+                <label><i class="fas fa-university"></i> Superior: <span class="add-btn" onclick="agregarCampo('EducacionSuperior')">(+)</span></label>
+                <input type="text" id="EducacionSuperior" placeholder="Universidad o Instituto">
+                <div id="EducacionSuperiorCampos"></div>
+
+                <!-- Sección de experiencia -->
+                <div class="section-title"><i class="fas fa-briefcase"></i> Experiencia Laboral <span class="add-btn" onclick="agregarCampo('Experiencia')">(+)</span></div>
+                <div id="Experiencia"></div>
+
+                <!-- Sección de habilidades -->
+                <div class="section-title"><i class="fas fa-star"></i> Habilidades <span class="add-btn" onclick="agregarCampo('Habilidades')">(+)</span></div>
+                <div id="Habilidades"></div>
+
+                <!-- Sección de cursos -->
+                <div class="section-title"><i class="fas fa-certificate"></i> Cursos <span class="add-btn" onclick="agregarCampo('Cursos')">(+)</span></div>
+                <div id="Cursos"></div>
+
+                <!-- Botones de acción -->
+                <div class="button-group">
+                    <button type="button" class="primary" onclick="generarCurriculum()">
+                        <i class="fas fa-file-alt"></i> Generar Currículum
+                    </button>
+                    <button type="button" class="danger" onclick="limpiarFormulario()">
+                        <i class="fas fa-trash-alt"></i> Limpiar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Vista previa en tiempo real -->
+        <div class="preview-container">
+            <div class="preview-header">
+                <select id="PreviewFormatoCV" onchange="actualizarVistaPrevia()">
+                    <option value="creativo">Creativo</option>
+                    <option value="moderno">Moderno</option>
+                    <option value="clasico">Clásico</option>
+                    <option value="profesional">Profesional</option>
+                    <option value="minimalista">Minimalista</option>
+                </select>
             </div>
-        </form>
+            <div class="preview-content" id="realTimePreview"></div>
+        </div>
     </div>
 
     <!-- Vista previa de impresión -->
