@@ -12,12 +12,13 @@ button.close-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 button.close-btn:hover {
     background-color: #ff0000;
+    transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
@@ -44,10 +45,54 @@ body {
     min-height: 100vh;
     background-color: #f4f7f6;
     color: #333;
+    animation: fadeIn 1s ease-in-out;
 }
 
-body.preview-active {
-    overflow: hidden;
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Efecto de sacudida para toda la página */
+/* Efecto de sacudida para toda la página */
+.shake-effect {
+    animation: shake 4s ease-in-out; /* Cambiado de 0.5s a 2s */
+}
+
+@keyframes shake {
+    0% { transform: translate(0, 0); }
+    10% { transform: translate(-10px, -10px); }
+    20% { transform: translate(10px, 10px); }
+    30% { transform: translate(-8px, -8px); }
+    40% { transform: translate(8px, 8px); }
+    50% { transform: translate(-6px, -6px); }
+    60% { transform: translate(6px, 6px); }
+    70% { transform: translate(-4px, -4px); }
+    80% { transform: translate(4px, 4px); }
+    90% { transform: translate(-2px, -2px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* Overlay blanco */
+.white-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0);
+    animation: fadeToWhite 0.5s ease forwards;
+    z-index: 1000;
+}
+
+@keyframes fadeToWhite {
+    0% { background: rgba(255, 255, 255, 0); }
+    100% { background: rgba(255, 255, 255, 1); }
+}
+
+.white-overlay.freeze-white {
+    animation: none;
+    background: rgba(255, 255, 255, 1);
 }
 
 /* Contenedor principal */
@@ -59,6 +104,13 @@ body.preview-active {
     gap: 20px;
     padding: 20px;
     box-sizing: border-box;
+    opacity: 0;
+    animation: slideIn 0.8s ease-out forwards;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Formulario */
@@ -69,6 +121,12 @@ body.preview-active {
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(13, 54, 131, 0.589);
     border: none !important;
+    animation: formEntry 1s ease-out forwards;
+}
+
+@keyframes formEntry {
+    from { opacity: 0; transform: translateX(-50px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* Vista previa */
@@ -81,8 +139,34 @@ body.preview-active {
     top: 20px;
     align-self: flex-start;
     height: fit-content;
+    animation: previewEntry 1s ease-out forwards;
 }
 
+@keyframes previewEntry {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.preview-container.reapply-animation {
+    animation: previewEntry 0.5s ease-out forwards;
+}
+
+.preview-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    height: 842px;
+    width: 100%;
+    max-width: 595px;
+    margin: 0 auto;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.preview-content:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
 
 .preview-header {
     text-align: center;
@@ -96,17 +180,12 @@ body.preview-active {
     border: 1px solid #ddd;
     font-size: 14px;
     background: white;
+    transition: border-color 0.3s ease, transform 0.3s ease;
 }
 
-.preview-content {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    overflow-y: auto;
-    height: 842px;
-    width: 100%;
-    max-width: 595px;
-    margin: 0 auto;
+.preview-header select:hover {
+    border-color: #3498db;
+    transform: scale(1.05);
 }
 
 /* Agenda lateral */
@@ -128,7 +207,7 @@ body.preview-active {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease, left 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .agenda-btn i.fas.fa-address-book {
@@ -137,6 +216,7 @@ body.preview-active {
 
 .agenda-btn:hover {
     background: #2980b9;
+    transform: translateY(-50%) scale(1.1) rotate(20deg);
 }
 
 .agenda-panel {
@@ -147,7 +227,7 @@ body.preview-active {
     height: 100vh;
     background: white;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    transition: left 0.3s ease;
+    transition: left 0.5s ease;
     z-index: 999;
     padding: 20px;
     overflow-y: auto;
@@ -155,6 +235,12 @@ body.preview-active {
 
 .agenda-panel.open {
     left: 0;
+    animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
 }
 
 .agenda-overlay {
@@ -166,10 +252,13 @@ body.preview-active {
     background: rgba(0,0,0,0.5);
     z-index: 998;
     display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
 }
 
 .agenda-overlay.open {
     display: block;
+    opacity: 1;
 }
 
 .agenda-panel h3 {
@@ -178,16 +267,44 @@ body.preview-active {
     color: #34495e;
     border-bottom: 2px solid #3498db;
     padding-bottom: 10px;
+    animation: fadeIn 0.5s ease-in-out;
 }
 
 /* Títulos */
-h2 {
+h2#titulo-generador {
     text-align: center;
     color: #2c3e50;
     font-size: 50px;
     font-weight: 700;
     margin-bottom: 20px;
     font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif;
+    animation: titleEntry 1s ease-out forwards;
+    white-space: nowrap;
+    overflow: hidden;
+    display: inline-block;
+}
+
+h2#titulo-generador.reapply-animation {
+    animation: titleEntry 0.5s ease-out forwards;
+}
+
+@keyframes titleEntry {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+@keyframes erase {
+    from { width: 100%; }
+    to { width: 0; }
+}
+
+@keyframes cursor {
+    50% { border-color: transparent; }
 }
 
 .section-title {
@@ -199,6 +316,12 @@ h2 {
     padding-bottom: 5px;
     display: flex;
     align-items: center;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.section-title:hover {
+    transform: translateX(10px);
+    color: #3498db;
 }
 
 /* Personalización */
@@ -208,6 +331,12 @@ h2 {
     border-radius: 8px;
     margin-bottom: 20px;
     border: 1px solid #e0e0e0;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .customization-title {
@@ -216,6 +345,11 @@ h2 {
     margin-bottom: 10px;
     display: flex;
     align-items: center;
+    transition: transform 0.3s ease;
+}
+
+.customization-title:hover {
+    transform: scale(1.05);
 }
 
 .color-options, .font-options {
@@ -230,16 +364,23 @@ h2 {
     height: 30px;
     border-radius: 50%;
     cursor: pointer;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .color-option:hover {
-    transform: scale(1.2);
+    transform: scale(1.2) rotate(10deg);
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
 }
 
 .color-option.selected {
     border: 2px solid #333;
     box-shadow: 0 0 0 2px #fff inset;
+    animation: spin 0.5s ease-out;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .font-option {
@@ -247,17 +388,25 @@ h2 {
     border: 1px solid #ddd;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .font-option:hover {
     background-color: #e0e0e0;
+    transform: translateY(-3px) rotate(2deg);
 }
 
 .font-option.selected {
     background-color: #3498db;
     color: white;
     border-color: #3498db;
+    animation: pop 0.3s ease-out;
+}
+
+@keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
 /* Formulario */
@@ -266,6 +415,12 @@ label {
     color: #34495e;
     display: block;
     margin-top: 15px;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+label:hover {
+    color: #3498db;
+    transform: translateX(5px);
 }
 
 input, select {
@@ -276,7 +431,7 @@ input, select {
     border: 1px solid #ddd;
     font-size: 14px;
     color: #333;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
     font-family: inherit;
 }
 
@@ -284,6 +439,7 @@ input:focus, select:focus {
     border-color: #3498db;
     outline: none;
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    transform: scale(1.02);
 }
 
 /* Botones */
@@ -302,11 +458,16 @@ button {
     cursor: pointer;
     font-size: 16px;
     font-weight: 500;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+button:hover {
+    transform: translateY(-3px) rotate(2deg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
 button.primary {
@@ -328,9 +489,13 @@ button.danger {
     background: rgb(238, 238, 238);
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
     cursor: pointer;
-    box-sizing: border-box;
+}
+
+.saved-cv-item:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .saved-cv-content strong {
@@ -359,7 +524,7 @@ button.danger {
     line-height: 1;
     text-align: center;
     cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     box-sizing: border-box;
@@ -369,64 +534,29 @@ button.danger {
 
 .cv-delete-btn:hover {
     background: #c0392b !important;
+    transform: scale(1.1) rotate(10deg);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-/* Vista previa de impresión */
-.print-preview-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1001;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.print-preview-overlay.active {
-    display: flex;
-}
-
-.print-preview-container {
-    background: white;
-    border-radius: 10px;
-    width: 100%;
-    max-width: 900px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-}
-
-.print-preview-header {
-    padding: 15px 20px;
-    background: #3498db;
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.print-preview-content {
-    padding: 20px;
-    overflow-y: auto;
-    flex-grow: 1;
 }
 
 /* Resto de estilos */
 .add-btn {
     color: #3498db;
     cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.add-btn:hover {
+    transform: scale(1.2) rotate(90deg);
 }
 
 .remove-btn {
     color: #e74c3c;
     cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.remove-btn:hover {
+    transform: scale(1.2) rotate(-90deg);
 }
 
 #savedCvsList {
@@ -449,4 +579,27 @@ button.danger {
         width: 100%;
         height: auto;
     }
+}
+
+/* Estilos para el campo de búsqueda en la agenda */
+.agenda-search {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.agenda-search:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    transform: scale(1.02);
+}
+
+.agenda-search::placeholder {
+    color: #999;
 }

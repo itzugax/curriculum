@@ -7,12 +7,39 @@ let fotoPerfilLocal = null;
 let fotoPerfilId = null;
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 
+// Animación de máquina de escribir para el título
+// Animación de máquina de escribir para el título
+function animarTitulo() {
+    const titulo = document.getElementById('titulo-generador');
+    const texto = "Generador de Currículum";
+    
+    function escribir(i = 0) {
+        if (i <= texto.length) {
+            titulo.textContent = `${texto.slice(0, i)}|`; // Cursor al final
+            setTimeout(() => escribir(i + 1), 100);
+        } else {
+            setTimeout(borrar, 1000);
+        }
+    }
+    
+    function borrar(i = texto.length) {
+        if (i >= 0) {
+            titulo.textContent = `${texto.slice(0, i)}|`; // Cursor al final
+            setTimeout(() => borrar(i - 1), 50);
+        } else {
+            setTimeout(escribir, 500);
+        }
+    }
+    
+    escribir();
+}
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
     cargarCVsGuardados();
     configurarPersonalizacion();
     actualizarVistaPrevia();
+    animarTitulo(); // Iniciar animación del título
     
     // Configurar el input de foto
     document.getElementById('FotoPerfil').addEventListener('change', function(e) {
@@ -63,7 +90,7 @@ async function subirFotoABackground(file) {
     }
 }
 
-// Configuración de personalización
+// Configuración de personalización (color y tipografía)
 function configurarPersonalizacion() {
     document.querySelectorAll('.color-option').forEach(option => {
         option.addEventListener('click', function() {
@@ -72,6 +99,7 @@ function configurarPersonalizacion() {
             colorPrincipal = this.getAttribute('data-color');
             actualizarEstilos();
             actualizarVistaPrevia();
+            reapplyAnimations();
         });
     });
 
@@ -81,8 +109,24 @@ function configurarPersonalizacion() {
             this.classList.add('selected');
             fuenteSeleccionada = this.getAttribute('data-font');
             actualizarVistaPrevia();
+            reapplyAnimations();
         });
     });
+}
+
+// Reaplicar animaciones al seleccionar color o tipografía
+function reapplyAnimations() {
+    const previewContainer = document.querySelector('.preview-container');
+    const titulo = document.getElementById('titulo-generador');
+    
+    previewContainer.classList.remove('reapply-animation');
+    titulo.classList.remove('reapply-animation');
+    
+    void previewContainer.offsetWidth; // Forzar reflujo para reiniciar animación
+    void titulo.offsetWidth;
+    
+    previewContainer.classList.add('reapply-animation');
+    titulo.classList.add('reapply-animation');
 }
 
 // Actualizar estilos dinámicos
@@ -98,11 +142,18 @@ function actualizarEstilos() {
     });
 }
 
-// Vista previa en tiempo real
+// Actualizar vista previa sin parpadeo ni glitches
 function actualizarVistaPrevia() {
     const formato = document.getElementById('PreviewFormatoCV').value;
     const previewContent = document.getElementById('realTimePreview');
-    previewContent.innerHTML = generarHTMLCV(formato);
+    const nuevoContenido = generarHTMLCV(formato);
+
+    // Solo actualizar si el contenido cambió
+    if (previewContent.innerHTML !== nuevoContenido) {
+        requestAnimationFrame(() => {
+            previewContent.innerHTML = nuevoContenido;
+        });
+    }
 }
 
 // Funciones existentes
@@ -148,6 +199,7 @@ function actualizarDatos() {
     actualizarVistaPrevia();
 }
 
+// Agregar campo extra
 function agregarCampo(id) {
     const div = id === "EducacionSuperior" 
         ? document.getElementById("EducacionSuperiorCampos") 
@@ -208,60 +260,69 @@ function generarCurriculum() {
     }
     
     guardarDatos(false);
-    mostrarVistaPrevia();
+    efectoSacudidaYDescarga(); // Inicia el efecto
 }
 
-async function mostrarVistaPrevia() {
-    const nombres = document.getElementById("Nombres").value;
-    const apellidos = document.getElementById("Apellidos").value;
-    
-    if (!nombres || !apellidos) {
-        alert("Por favor ingresa al menos tu nombre y apellido");
-        return;
-    }
+// Efecto de sacudida y descarga ajustado
+async function efectoSacudidaYDescarga() {
+    const body = document.body;
+    const overlay = document.createElement('div');
+    overlay.className = 'white-overlay';
+    body.appendChild(overlay);
+    body.classList.add('shake-effect');
 
-    if (fotoPerfilLocal) {
-        try {
-            await precargarImagen(fotoPerfilLocal);
-        } catch (error) {
-            console.error("Error al cargar la foto local:", error);
-        }
-    }
+    // Reproducir sonido
+    const genSound = document.getElementById('genSound');
+    genSound.play().catch(error => console.error("Error al reproducir sonido:", error));
 
-    const previewContent = document.getElementById('printPreviewContent');
-    previewContent.innerHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
-    document.getElementById('printPreviewOverlay').classList.add('active');
-    document.body.classList.add('preview-active');
+    // 2 segundos de sacudida
+    setTimeout(() => {
+        // Comienza el desvanecimiento
+        overlay.style.animation = 'fadeToWhite 0.5s ease forwards';
+
+        // Después de 0.5s (fin del desvanecimiento), congelar y descargar
+        setTimeout(async () => {
+            overlay.classList.add('freeze-white');
+            await descargarPDF(); // Descarga el PDF al inicio del congelamiento
+
+            // 3 segundos de congelamiento, luego subir y limpiar
+            setTimeout(() => {
+                // Subir la página al inicio mientras está en blanco
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Remover efectos y reiniciar
+                body.classList.remove('shake-effect');
+                body.removeChild(overlay);
+                reiniciarTodo(); // Reinicia solo el formulario y opciones
+                actualizarVistaPrevia();
+                alert('¡Currículum descargado con éxito!');
+            }, 3000); // Congelamiento dura 3 segundos
+        }, 500); // Desvanecimiento dura 0.5 segundos
+    }, 2000); // Sacudida dura 2 segundos
 }
 
-function precargarImagen(url) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = url;
-        img.onload = resolve;
-        img.onerror = reject;
-    });
-}
+// Nueva función para reiniciar todo
+function reiniciarTodo() {
+    // Limpiar formulario
+    limpiarFormulario();
 
-function cerrarVistaPrevia() {
-    document.getElementById('printPreviewOverlay').classList.remove('active');
-    document.body.classList.remove('preview-active');
-    resetearEstilos();
-}
-
-function resetearEstilos() {
+    // Restablecer color principal
     colorPrincipal = '#3498db';
-    fuenteSeleccionada = "'Poppins', sans-serif";
     document.querySelectorAll('.color-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
+        opt.classList.toggle('selected', opt.getAttribute('data-color') === '#3498db');
     });
+
+    // Restablecer tipografía
+    fuenteSeleccionada = "'Poppins', sans-serif";
     document.querySelectorAll('.font-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
+        opt.classList.toggle('selected', opt.getAttribute('data-font') === "'Poppins', sans-serif");
     });
+
+    // Actualizar estilos
     actualizarEstilos();
-    actualizarVistaPrevia();
 }
 
+// Ajuste en descargarPDF (eliminamos el appendChild duplicado)
 async function descargarPDF() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
@@ -319,7 +380,7 @@ async function descargarPDF() {
         };
 
         await html2pdf().set(opt).from(element).save();
-        document.body.removeChild(element);
+        document.body.removeChild(element); // Limpiar después de descargar
         
     } catch (error) {
         console.error("Error al generar PDF:", error);
@@ -376,7 +437,6 @@ function generarFotoPerfilHTML() {
     `;
 }
 
-// Formatos de CV
 function generarFormatoProfesional() {
     const datosBasicos = obtenerDatosBasicos();
     const estudios = obtenerEstudios();
@@ -804,7 +864,7 @@ function generarFormatoModerno() {
                 body {
                     font-family: ${fuenteSeleccionada};
                     margin: 0;
-                    padding: 20px;
+                    padding: 0;
                     color: #333;
                     line-height: 1.6;
                 }
@@ -813,13 +873,21 @@ function generarFormatoModerno() {
                     margin: 0 auto;
                     padding: 30px;
                     background: white;
+                    display: flex;
+                    flex-direction: row;
+                    gap: 30px;
+                }
+                .left-column {
+                    flex: 1;
+                    background: ${colorPrincipal}10;
+                    padding: 20px;
+                    border-radius: 8px;
+                }
+                .right-column {
+                    flex: 2;
                 }
                 .header {
-                    display: flex;
-                    align-items: center;
                     margin-bottom: 30px;
-                    padding-bottom: 20px;
-                    border-bottom: 2px solid ${colorPrincipal};
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -828,32 +896,28 @@ function generarFormatoModerno() {
                     font-weight: 700;
                 }
                 .contact-info {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 5px;
+                    margin-top: 15px;
                 }
                 .contact-item {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
-                    font-size: 14px;
+                    margin-bottom: 8px;
                 }
                 .contact-item i {
                     color: ${colorPrincipal};
-                }
-                .two-columns {
-                    display: grid;
-                    grid-template-columns: 1fr 2fr;
-                    gap: 30px;
+                    width: 20px;
+                    margin-right: 8px;
                 }
                 .section {
                     margin-bottom: 25px;
                 }
                 .section-title {
                     color: ${colorPrincipal};
-                    font-size: 20px;
+                    font-size: 18px;
+                    font-weight: 600;
                     margin-bottom: 15px;
                     text-transform: uppercase;
+                    border-bottom: 1px solid ${colorPrincipal}50;
                 }
                 .section-content {
                     font-size: 14px;
@@ -866,46 +930,37 @@ function generarFormatoModerno() {
         <body>
             <div class="cv-container">
                 ${fotoPerfil}
-                <div class="header">
-                    <div class="name-container">
+                <div class="left-column">
+                    <div class="header">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                        <div class="contact-info">
+                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                        </div>
                     </div>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
-                    </div>
+                    ${datosBasicos ? `<div class="section">
+                        <div class="section-title">Datos Personales</div>
+                        <div class="section-content">${datosBasicos}</div>
+                    </div>` : ''}
+                    ${habilidades ? `<div class="section">
+                        <div class="section-title">Habilidades</div>
+                        <div class="section-content"><ul>${habilidades}</ul></div>
+                    </div>` : ''}
                 </div>
-                
-                <div class="two-columns">
-                    <div class="left-column">
-                        ${datosBasicos ? `<div class="section">
-                            <div class="section-title">Datos Personales</div>
-                            <div class="section-content">${datosBasicos}</div>
-                        </div>` : ''}
-                        
-                        ${habilidades ? `<div class="section">
-                            <div class="section-title">Habilidades</div>
-                            <div class="section-content"><ul>${habilidades}</ul></div>
-                        </div>` : ''}
-                    </div>
-                    
-                    <div class="right-column">
-                        ${estudios ? `<div class="section">
-                            <div class="section-title">Educación</div>
-                            <div class="section-content">${estudios}</div>
-                        </div>` : ''}
-                        
-                        ${experiencia ? `<div class="section">
-                            <div class="section-title">Experiencia</div>
-                            <div class="section-content"><ul>${experiencia}</ul></div>
-                        </div>` : ''}
-                        
-                        ${cursos ? `<div class="section">
-                            <div class="section-title">Cursos</div>
-                            <div class="section-content"><ul>${cursos}</ul></div>
-                        </div>` : ''}
-                    </div>
+                <div class="right-column">
+                    ${estudios ? `<div class="section">
+                        <div class="section-title">Educación</div>
+                        <div class="section-content">${estudios}</div>
+                    </div>` : ''}
+                    ${experiencia ? `<div class="section">
+                        <div class="section-title">Experiencia</div>
+                        <div class="section-content"><ul>${experiencia}</ul></div>
+                    </div>` : ''}
+                    ${cursos ? `<div class="section">
+                        <div class="section-title">Cursos</div>
+                        <div class="section-content"><ul>${cursos}</ul></div>
+                    </div>` : ''}
                 </div>
             </div>
         </body>
@@ -1171,6 +1226,10 @@ async function guardarDatos(mostrarAlerta = true) {
     return true;
 }
 
+// Variables globales para almacenar los CVs cargados
+let cvData = [];
+
+// Cargar CVs guardados y preparar búsqueda
 async function cargarCVsGuardados() {
     try {
         const db = firebase.firestore();
@@ -1179,35 +1238,72 @@ async function cargarCVsGuardados() {
             .get();
         
         const lista = document.getElementById('savedCvsList');
+        cvData = []; // Reiniciar datos
         
         if (querySnapshot.empty) {
             lista.innerHTML = '<p style="text-align: center; color: #666;">No hay CVs guardados</p>';
             return;
         }
         
-        let html = '';
-        querySnapshot.forEach((doc, index) => {
+        querySnapshot.forEach((doc) => {
             const cv = doc.data();
-            html += `
-                <div class="saved-cv-item">
-                    <div class="saved-cv-content" onclick="cargarCV('${doc.id}')">
-                        <strong>${cv.nombres} ${cv.apellidos}</strong>
-                        <div>${cv.campos['Cedula'] || 'Sin cédula registrada'}</div>
-                    </div>
-                    <button class="cv-delete-btn" onclick="eliminarCV('${doc.id}', event)">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
+            cvData.push({
+                id: doc.id,
+                nombres: cv.nombres,
+                apellidos: cv.apellidos,
+                cedula: cv.campos['Cedula'] || 'Sin cédula registrada'
+            });
         });
         
-        lista.innerHTML = html;
+        mostrarCVs(cvData); // Mostrar todos inicialmente
+        
     } catch (error) {
         console.error("Error al cargar CVs:", error);
         document.getElementById('savedCvsList').innerHTML = 
             '<p style="text-align: center; color: #666;">Error al cargar los CVs</p>';
     }
 }
+
+// Función para mostrar CVs en la lista
+function mostrarCVs(cvs) {
+    const lista = document.getElementById('savedCvsList');
+    let html = '';
+    
+    if (cvs.length === 0) {
+        html = '<p style="text-align: center; color: #666;">No se encontraron resultados</p>';
+    } else {
+        cvs.forEach(cv => {
+            html += `
+                <div class="saved-cv-item">
+                    <div class="saved-cv-content" onclick="cargarCV('${cv.id}')">
+                        <strong>${cv.nombres} ${cv.apellidos}</strong>
+                        <div>${cv.cedula}</div>
+                    </div>
+                    <button class="cv-delete-btn" onclick="eliminarCV('${cv.id}', event)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        });
+    }
+    
+    lista.innerHTML = html;
+}
+
+// Agregar evento de búsqueda al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // (Código existente de inicialización aquí)
+
+    // Evento de búsqueda
+    document.getElementById('agendaSearch').addEventListener('input', function() {
+        const searchTerm = this.value.trim().toLowerCase();
+        const filteredCvs = cvData.filter(cv => 
+            `${cv.nombres} ${cv.apellidos}`.toLowerCase().includes(searchTerm) ||
+            cv.cedula.toLowerCase().includes(searchTerm)
+        );
+        mostrarCVs(filteredCvs);
+    });
+});
 
 async function eliminarCV(id, event) {
     event.stopPropagation();
@@ -1273,7 +1369,7 @@ async function cargarCV(id) {
                         removeBtn.onclick = function() {
                             div.removeChild(input);
                             div.removeChild(removeBtn);
-                            div.removeChild(document.createElement('br'));
+                            div.removeChild(div.lastElementChild); // Remover <br>
                             actualizarVistaPrevia();
                         };
                         
@@ -1287,54 +1383,46 @@ async function cargarCV(id) {
             }
         });
         
-        colorPrincipal = cv.colorPrincipal || '#3498db';
-        fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
-        fotoPerfilUrl = cv.fotoPerfilUrl || null;
-        fotoPerfilLocal = null;
-        fotoPerfilId = cv.fotoPerfilId || null;
-        
-        if (fotoPerfilUrl) {
-            document.getElementById('fotoPreview').src = fotoPerfilUrl;
-            document.getElementById('fotoPreviewContainer').style.display = 'block';
+        if (cv.fotoPerfilUrl) {
+            fotoPerfilUrl = cv.fotoPerfilUrl;
+            fotoPerfilId = cv.fotoPerfilId;
+            const previewContainer = document.getElementById('fotoPreviewContainer');
+            previewContainer.style.display = 'block';
+            previewContainer.innerHTML = `
+                <div style="width: 150px; height: 150px; border-radius: 50%; 
+                            border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
+                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover;" src="${fotoPerfilUrl}">
+                </div>
+            `;
         }
         
-        actualizarEstilos();
+        colorPrincipal = cv.colorPrincipal || '#3498db';
+        fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
         
         document.querySelectorAll('.color-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.getAttribute('data-color') === colorPrincipal);
+            if (opt.getAttribute('data-color') === colorPrincipal) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
         });
         
         document.querySelectorAll('.font-option').forEach(opt => {
-            opt.classList.toggle('selected', opt.getAttribute('data-font') === fuenteSeleccionada);
+            if (opt.getAttribute('data-font') === fuenteSeleccionada) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
         });
         
-        toggleAgenda();
+        actualizarDatos();
+        actualizarEstilos();
         actualizarVistaPrevia();
+        
+        toggleAgenda();
+        
     } catch (error) {
         console.error("Error al cargar CV:", error);
         alert("Error al cargar el currículum");
     }
 }
-
-document.getElementById('Cedula').addEventListener('input', function(e) {
-    const input = e.target;
-    const startPos = input.selectionStart;
-    const cursorWasAtEnd = (startPos === input.value.length);
-    let value = input.value.replace(/^V-/, '').replace(/\./g, '');
-    value = value.replace(/\D/g, '');
-    if (value.length > 3) {
-        value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-    input.value = value ? 'V-' + value : '';
-    if (!cursorWasAtEnd) {
-        const adjustedPos = startPos - (input.value.length - e.target.value.length);
-        input.setSelectionRange(adjustedPos, adjustedPos);
-    }
-});
-
-document.getElementById('Cedula').addEventListener('blur', function(e) {
-    if (e.target.value && !/^V-\d{1,3}(?:\.\d{3})*$/.test(e.target.value)) {
-        alert('Formato de cédula inválido. Ejemplo correcto: V-1.234.567');
-        e.target.focus();
-    }
-});

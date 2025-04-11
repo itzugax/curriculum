@@ -21,18 +21,20 @@
         <i class="fas fa-address-book"></i>
     </button>
 
-    <!-- Panel de agenda -->
-    <div class="agenda-overlay" id="agendaOverlay" onclick="toggleAgenda()"></div>
-    <div class="agenda-panel" id="agendaPanel">
-        <h3><i class="fas fa-address-book"></i> Currículums Guardados</h3>
-        <div id="savedCvsList"></div>
-    </div>
+<!-- Panel de agenda -->
+<div class="agenda-overlay" id="agendaOverlay" onclick="toggleAgenda()"></div>
+<div class="agenda-panel" id="agendaPanel">
+    <h3><i class="fas fa-address-book"></i> Currículums Guardados</h3>
+    <!-- Campo de búsqueda -->
+    <input type="text" id="agendaSearch" placeholder="Buscar por nombre o cédula..." class="agenda-search">
+    <div id="savedCvsList"></div>
+</div>
 
     <!-- Contenedor principal -->
     <div class="main-container">
         <!-- Formulario -->
         <div class="form-container">
-            <h2>Generador de Currículum</h2>
+            <h2 id="titulo-generador">|Generador de Currículum</h2>
             
             <!-- Panel de personalización -->
             <div class="customization-panel">
@@ -79,7 +81,9 @@
                 <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
                 <label><i class="fas fa-id-card"></i> Cédula:</label>
-                <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
+                <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,
+
+3}(?:\.\d{3})*$">
 
                 <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
                 <input type="date" id="FechaNacimiento">
@@ -162,24 +166,6 @@
         </div>
     </div>
 
-    <!-- Vista previa de impresión -->
-    <div class="print-preview-overlay" id="printPreviewOverlay">
-        <div class="print-preview-container">
-            <div class="print-preview-header">
-                <h3>Vista Previa del Currículum</h3>
-                <button class="close-btn" onclick="cerrarVistaPrevia()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="print-preview-content" id="printPreviewContent"></div>
-            <div class="print-preview-actions">
-                <button class="primary" onclick="descargarPDF()">
-                    <i class="fas fa-file-pdf"></i> Descargar PDF
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -196,5 +182,7 @@
         };
         firebase.initializeApp(firebaseConfig);
     </script>
+    <!-- Agregar esto dentro del <body>, por ejemplo, al final -->
+<audio id="genSound" src="gen.wav" preload="auto"></audio>
 </body>
 </html>
