@@ -275,7 +275,7 @@ async function efectoSacudidaYDescarga() {
     const genSound = document.getElementById('genSound');
     genSound.play().catch(error => console.error("Error al reproducir sonido:", error));
 
-    // 2 segundos de sacudida
+    // 3 segundos de sacudida antes del desvanecimiento
     setTimeout(() => {
         // Comienza el desvanecimiento
         overlay.style.animation = 'fadeToWhite 0.5s ease forwards';
@@ -295,10 +295,10 @@ async function efectoSacudidaYDescarga() {
                 body.removeChild(overlay);
                 reiniciarTodo(); // Reinicia solo el formulario y opciones
                 actualizarVistaPrevia();
-                alert('¡Currículum descargado con éxito!');
+                alert('¡CV descargado con éxito!');
             }, 3000); // Congelamiento dura 3 segundos
         }, 500); // Desvanecimiento dura 0.5 segundos
-    }, 2000); // Sacudida dura 2 segundos
+    }, 3000); // Sacudida dura 3 segundos (cambiado de 2000 a 3000)
 }
 
 // Nueva función para reiniciar todo

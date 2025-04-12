@@ -54,9 +54,8 @@ body {
 }
 
 /* Efecto de sacudida para toda la página */
-/* Efecto de sacudida para toda la página */
 .shake-effect {
-    animation: shake 4s ease-in-out; /* Cambiado de 0.5s a 2s */
+    animation: shake 3s ease-in-out; /* Cambiado de 2s a 3s */
 }
 
 @keyframes shake {
@@ -128,6 +127,16 @@ body {
     from { opacity: 0; transform: translateX(-50px); }
     to { opacity: 1; transform: translateX(0); }
 }
+/* Vista previa en tamaño carta */
+#realTimePreview {
+    width: 215.9mm; /* Ancho exacto de carta */
+    height: 279.4mm; /* Alto exacto de carta */
+    max-width: 100%; /* Evita que se desborde en pantallas pequeñas */
+    margin: 0 auto; /* Centra horizontalmente */
+    background: white; /* Fondo blanco como una hoja */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra para efecto de hoja */
+    overflow: hidden; /* Evita contenido fuera de los límites */
+}
 
 /* Vista previa */
 .preview-container {
@@ -136,6 +145,9 @@ body {
     flex-direction: column;
     gap: 10px;
     position: sticky;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
     top: 20px;
     align-self: flex-start;
     height: fit-content;
@@ -270,22 +282,25 @@ body {
     animation: fadeIn 0.5s ease-in-out;
 }
 
+
+
 /* Títulos */
-h2#titulo-generador {
-    text-align: center;
-    color: #2c3e50;
-    font-size: 50px;
-    font-weight: 700;
+#titulo-generador {
+    font-size: 3em;
+    color: #2c3844;
     margin-bottom: 20px;
+    text-align: center;
+    width: 100%;
+    display: block; /* Asegura que sea un bloque completo */
     font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif;
-    animation: titleEntry 1s ease-out forwards;
-    white-space: nowrap;
-    overflow: hidden;
-    display: inline-block;
+    position: relative; /* Evita conflictos con posicionamiento */
+    left: 0;
+    transform: none; /* Elimina cualquier transformación */
 }
 
 h2#titulo-generador.reapply-animation {
     animation: titleEntry 0.5s ease-out forwards;
+    
 }
 
 @keyframes titleEntry {
@@ -603,3 +618,4 @@ button.danger {
 .agenda-search::placeholder {
     color: #999;
 }
+
