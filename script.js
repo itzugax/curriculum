@@ -1426,3 +1426,10 @@ async function cargarCV(id) {
         alert("Error al cargar el currículum");
     }
 }
+// Ocultar la pantalla de carga después de 2 segundos
+document.addEventListener('DOMContentLoaded', function () {
+    const loadingScreen = document.getElementById('loadingScreen');
+    setTimeout(() => {
+        loadingScreen.classList.add('hidden');
+    }, 2000);
+});
