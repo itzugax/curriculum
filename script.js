@@ -41,6 +41,14 @@ document.addEventListener('DOMContentLoaded', function() {
     configurarPersonalizacion();
     actualizarVistaPrevia();
     animarTitulo(); // Iniciar animación del título
+
+    // Restaurar estado del Filtro Mágico si ya fue descargado antes
+    if (localStorage.getItem('ia_descargada') === '1') {
+        const btn = document.getElementById('btnPreloadModel');
+        const status = document.getElementById('preloadStatus');
+        if (btn) btn.style.display = 'none';
+        if (status) status.style.display = 'block';
+    }
     
     // Configurar el input de foto
     document.getElementById('FotoPerfil').addEventListener('change', function(e) {
@@ -1516,129 +1524,144 @@ function obtenerImagenRecortada() {
     }, 'image/jpeg', 0.9);
 }
 
-// Lógica de Filtro Mágico con IA de Google MediaPipe
-let selfieSegmentationInstance = null;
+// ─── Filtro Mágico con @imgly/background-removal (Local) ───────────────────────
+
+let iaPrendida = localStorage.getItem('ia_descargada') === '1';
+
+async function predescargarIA() {
+    const btn = document.getElementById('btnPreloadModel');
+    const barContainer = document.getElementById('preloadProgressBarContainer');
+    const bar = document.getElementById('preloadProgressBar');
+    const text = document.getElementById('preloadProgressText');
+    const status = document.getElementById('preloadStatus');
+
+    if (iaPrendida) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparando descarga...';
+    barContainer.style.display = 'block';
+
+    try {
+        const { preload } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal/+esm');
+        
+        await preload({
+            progress: (key, current, total) => {
+                const percentage = Math.round((current / total) * 100);
+                bar.style.width = `${percentage}%`;
+                text.innerText = `Descargando: ${percentage}% (${(current / 1024 / 1024).toFixed(1)}MB / ${(total / 1024 / 1024).toFixed(1)}MB)`;
+            }
+        });
+
+        iaPrendida = true;
+        localStorage.setItem('ia_descargada', '1');
+        btn.style.display = 'none';
+        barContainer.style.display = 'none';
+        status.style.display = 'block';
+    } catch (error) {
+        console.error('Error al predescargar la IA:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error al descargar. Reintentar';
+        alert('Ocurrió un error al descargar la IA: ' + error.message);
+    }
+}
 
 async function aplicarMejoraMagica() {
     if (!cropperInstance) return;
 
     const loadingOverlay = document.getElementById('cropperLoading');
-    const loadingText = document.getElementById('cropperLoadingText');
+    const loadingText   = document.getElementById('cropperLoadingText');
     loadingOverlay.style.display = 'flex';
-    loadingText.innerText = 'Iniciando IA de Google...';
+    loadingText.innerText = 'Cargando IA local...';
 
     try {
-        // 1. Obtener la imagen recortada del Cropper actual
-        // Extraemos un canvas de buena resolución que contiene los ajustes y rotación actuales
-        const canvas = cropperInstance.getCroppedCanvas({
+        // 1. Cargar dinámicamente la librería
+        const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal/+esm');
+
+        // 2. Extraer la imagen actual del cropper como Blob JPEG
+        const sourceCanvas = cropperInstance.getCroppedCanvas({
             width: 800,
             height: 800,
             imageSmoothingEnabled: true,
             imageSmoothingQuality: 'high'
         });
 
-        // 2. Inicializar la IA de MediaPipe si no se ha hecho
-        if (!selfieSegmentationInstance) {
-            selfieSegmentationInstance = new SelfieSegmentation({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
-            });
+        const sourceBlob = await new Promise(res =>
+            sourceCanvas.toBlob(res, 'image/jpeg', 0.95)
+        );
 
-            selfieSegmentationInstance.setOptions({
-                modelSelection: 1 // 1: General (más preciso para retratos)
-            });
-        }
+        loadingText.innerText = 'Procesando imagen localmente (Filtro Mágico)...';
 
-        // Crear una promesa para esperar a que la IA devuelva el resultado
-        const procesarImagenPromise = new Promise((resolve, reject) => {
-            selfieSegmentationInstance.onResults((results) => {
-                try {
-                    if (!results || !results.segmentationMask) {
-                        reject(new Error("No se detectó silueta"));
-                        return;
-                    }
-
-                    loadingText.innerText = 'Generando fondo blanco e iluminación...';
-
-                    // Crear canvas final
-                    const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = results.image.width;
-                    finalCanvas.height = results.image.height;
-                    const ctx = finalCanvas.getContext('2d');
-
-                    // Dibujar la máscara de la silueta con difuminado suave (feathering) para evitar bordes duros
-                    ctx.save();
-                    ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
-                    
-                    // Aplicar un ligero filtro de desenfoque a la máscara para suavizar la transición
-                    ctx.filter = 'blur(2.5px)';
-                    ctx.drawImage(results.segmentationMask, 0, 0, finalCanvas.width, finalCanvas.height);
-                    ctx.filter = 'none'; // Desactivar el filtro para el resto de las operaciones
-
-                    // Recortar la imagen con la máscara suavizada (modo source-in)
-                    ctx.globalCompositeOperation = 'source-in';
-                    ctx.drawImage(results.image, 0, 0, finalCanvas.width, finalCanvas.height);
-
-                    // Añadir el fondo blanco sólido por detrás de la silueta suavizada (modo destination-over)
-                    ctx.globalCompositeOperation = 'destination-over';
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-                    ctx.restore();
-
-                    // Ajustar brillo, contraste y calidez de forma sutil y natural
-                    const imgData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
-                    const data = imgData.data;
-
-                    const brightness = 8;   // Ajuste sutil de brillo (+8)
-                    const contrast = 1.08;  // Ajuste sutil de contraste (+8%)
-                    const warmth = 4;       // Aumentar calidez en el canal rojo para dar vitalidad a la piel
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        // Saltar píxeles del fondo blanco puro para mantenerlo limpio
-                        if (data[i] >= 253 && data[i+1] >= 253 && data[i+2] >= 253) {
-                            continue;
-                        }
-
-                        // Ajustar canales R, G, B
-                        for (let c = 0; c < 3; c++) {
-                            let val = data[i + c];
-                            // Brillo
-                            val += brightness;
-                            // Contraste
-                            val = (val - 128) * contrast + 128;
-                            
-                            // Añadir calidez al canal rojo
-                            if (c === 0) {
-                                val += warmth;
-                            }
-                            
-                            data[i + c] = Math.max(0, Math.min(255, val));
-                        }
-                    }
-                    ctx.putImageData(imgData, 0, 0);
-
-                    // Convertir el canvas mejorado a Data URL
-                    const enhancedDataURL = finalCanvas.toDataURL('image/jpeg', 0.95);
-                    resolve(enhancedDataURL);
-                } catch (e) {
-                    reject(e);
-                }
-            });
+        // 3. Procesar con la librería local
+        const pngBlob = await removeBackground(sourceBlob, {
+            progress: (key, current, total) => {
+                const percentage = Math.round((current / total) * 100);
+                loadingText.innerText = `Descargando modelo: ${percentage}%`;
+            }
         });
 
-        // 3. Enviar la imagen del Cropper a la IA
-        loadingText.innerText = 'Recortando fondo con IA...';
-        await selfieSegmentationInstance.send({ image: canvas });
+        // Marcar que ya está descargada e inicializada
+        iaPrendida = true;
+        const btn = document.getElementById('btnPreloadModel');
+        const status = document.getElementById('preloadStatus');
+        if (btn) btn.style.display = 'none';
+        if (status) status.style.display = 'block';
 
-        // Esperar el resultado final de la promesa
-        const resultUrl = await procesarImagenPromise;
+        loadingText.innerText = 'Aplicando fondo blanco e iluminación...';
 
-        // Reemplazar la imagen en el cropper para que el usuario pueda reajustarla
-        cropperInstance.replace(resultUrl);
-        
+        // 4. Dibujar la silueta sobre fondo blanco en un canvas
+        const pngUrl = URL.createObjectURL(pngBlob);
+        const img    = new Image();
+
+        await new Promise((resolve, reject) => {
+            img.onload  = resolve;
+            img.onerror = reject;
+            img.src     = pngUrl;
+        });
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width  = img.naturalWidth;
+        finalCanvas.height = img.naturalHeight;
+        const ctx = finalCanvas.getContext('2d');
+
+        // Fondo blanco puro
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+        // Persona (PNG con transparencia) encima
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(pngUrl);
+
+        // 5. Mejora de iluminación notable (brillo +20, contraste +20%, calidez +10)
+        const imgData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+        const d       = imgData.data;
+
+        for (let i = 0; i < d.length; i += 4) {
+            // Saltar píxeles completamente transparentes o fondo blanco puro
+            if (d[i + 3] === 0) continue;
+            if (d[i] >= 250 && d[i+1] >= 250 && d[i+2] >= 250) continue;
+
+            for (let c = 0; c < 3; c++) {
+                let v = d[i + c];
+                v += 20;                       // brillo
+                v = (v - 128) * 1.2 + 128;    // contraste +20%
+                if (c === 0) v += 10;          // calidez (canal rojo +10)
+                if (c === 2) v -= 5;           // reducir azul para calidez
+                d[i + c] = Math.max(0, Math.min(255, v));
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        // 6. Reemplazar la imagen del cropper con el resultado si el usuario no cerró el modal
+        if (cropperInstance) {
+            const resultUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
+            cropperInstance.replace(resultUrl);
+        }
+
         loadingOverlay.style.display = 'none';
+
     } catch (err) {
-        console.error("Error en mejora mágica:", err);
-        alert("Ocurrió un error al procesar la imagen con IA. Inténtalo de nuevo.");
+        console.error('Error en Filtro Mágico:', err);
+        alert(`✨ Filtro Mágico: ${err.message}`);
         loadingOverlay.style.display = 'none';
     }
 }
