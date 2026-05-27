@@ -48,6 +48,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const status = document.getElementById('preloadStatus');
         if (btn) btn.style.display = 'none';
         if (status) status.style.display = 'block';
+        // Pre-calentar la IA en segundo plano sin bloquear la UI
+        setTimeout(() => _preCentientarIASilencio(), 2000);
     }
     
     // Configurar el input de foto
@@ -1527,6 +1529,29 @@ function obtenerImagenRecortada() {
 // ─── Filtro Mágico con @imgly/background-removal (Local) ───────────────────────
 
 let iaPrendida = localStorage.getItem('ia_descargada') === '1';
+let _removeBackgroundFn = null; // Caché en memoria para no re-importar
+
+// Carga la función removeBackground solo una vez y la guarda en memoria
+async function _cargarLibreriaIA(onProgress) {
+    if (_removeBackgroundFn) return _removeBackgroundFn;
+    const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal/+esm');
+    _removeBackgroundFn = mod.removeBackground;
+    // Precargar el modelo en caché del navegador silenciosamente
+    if (mod.preload) {
+        await mod.preload({ progress: onProgress || (() => {}) });
+    }
+    return _removeBackgroundFn;
+}
+
+// Se llama al cargar la página si ya fue descargado antes (pre-calienta en silencio)
+async function _preCentientarIASilencio() {
+    try {
+        await _cargarLibreriaIA();
+        iaPrendida = true;
+    } catch (e) {
+        console.warn('Pre-calentamiento de IA falló silenciosamente:', e);
+    }
+}
 
 async function predescargarIA() {
     const btn = document.getElementById('btnPreloadModel');
@@ -1542,10 +1567,8 @@ async function predescargarIA() {
     barContainer.style.display = 'block';
 
     try {
-        const { preload } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal/+esm');
-        
-        await preload({
-            progress: (key, current, total) => {
+        await _cargarLibreriaIA((key, current, total) => {
+            if (total > 0) {
                 const percentage = Math.round((current / total) * 100);
                 bar.style.width = `${percentage}%`;
                 text.innerText = `Descargando: ${percentage}% (${(current / 1024 / 1024).toFixed(1)}MB / ${(total / 1024 / 1024).toFixed(1)}MB)`;
@@ -1574,10 +1597,7 @@ async function aplicarMejoraMagica() {
     loadingText.innerText = 'Cargando IA local...';
 
     try {
-        // 1. Cargar dinámicamente la librería
-        const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal/+esm');
-
-        // 2. Extraer la imagen actual del cropper como Blob JPEG
+        // 1. Extraer la imagen actual del cropper como Blob JPEG
         const sourceCanvas = cropperInstance.getCroppedCanvas({
             width: 800,
             height: 800,
@@ -1589,22 +1609,30 @@ async function aplicarMejoraMagica() {
             sourceCanvas.toBlob(res, 'image/jpeg', 0.95)
         );
 
-        loadingText.innerText = 'Procesando imagen localmente (Filtro Mágico)...';
+        loadingText.innerText = iaPrendida ? 'Procesando imagen con IA...' : 'Descargando modelo de IA (primera vez)...';
 
-        // 3. Procesar con la librería local
-        const pngBlob = await removeBackground(sourceBlob, {
-            progress: (key, current, total) => {
-                const percentage = Math.round((current / total) * 100);
-                loadingText.innerText = `Descargando modelo: ${percentage}%`;
+        // 3. Procesar con la librería (se reutiliza si ya estaba cargada)
+        const removeBackground = await _cargarLibreriaIA(
+            iaPrendida ? null : (key, current, total) => {
+                if (total > 0) {
+                    const pct = Math.round((current / total) * 100);
+                    loadingText.innerText = `Descargando: ${pct}% (${(current/1024/1024).toFixed(1)}MB)`;
+                }
             }
-        });
+        );
 
-        // Marcar que ya está descargada e inicializada
-        iaPrendida = true;
-        const btn = document.getElementById('btnPreloadModel');
-        const status = document.getElementById('preloadStatus');
-        if (btn) btn.style.display = 'none';
-        if (status) status.style.display = 'block';
+        loadingText.innerText = 'Eliminando fondo con IA...';
+        const pngBlob = await removeBackground(sourceBlob);
+
+        // Marcar como descargada
+        if (!iaPrendida) {
+            iaPrendida = true;
+            localStorage.setItem('ia_descargada', '1');
+            const btn = document.getElementById('btnPreloadModel');
+            const status = document.getElementById('preloadStatus');
+            if (btn) btn.style.display = 'none';
+            if (status) status.style.display = 'block';
+        }
 
         loadingText.innerText = 'Aplicando fondo blanco e iluminación...';
 
