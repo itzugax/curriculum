@@ -5,6 +5,7 @@ let fuenteSeleccionada = "'Poppins', sans-serif";
 let fotoPerfilUrl = null;
 let fotoPerfilLocal = null;
 let fotoPerfilId = null;
+let cropperInstance = null;
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 
 // Animación de máquina de escribir para el título
@@ -45,23 +46,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('FotoPerfil').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            fotoPerfilLocal = URL.createObjectURL(file);
-            const previewContainer = document.getElementById('fotoPreviewContainer');
-            const previewImg = document.getElementById('fotoPreview');
-            previewContainer.style.display = 'block';
-            previewContainer.innerHTML = `
-                <div style="width: 150px; height: 150px; border-radius: 50%; 
-                            border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-            `;
-            document.getElementById('fotoPreview').src = fotoPerfilLocal;
-            subirFotoABackground(file);
-            actualizarVistaPrevia();
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                abrirCropModal(event.target.result);
+            };
+            reader.readAsDataURL(file);
         } else {
             fotoPerfilLocal = null;
             fotoPerfilUrl = null;
-            document.getElementById('fotoPreviewContainer').style.display = 'none';
+            const previewContainer = document.getElementById('fotoPreviewContainer');
+            if (previewContainer) previewContainer.style.display = 'none';
             actualizarVistaPrevia();
         }
     });
@@ -429,9 +423,12 @@ function generarFotoPerfilHTML() {
     return `
         <div style="text-align: center; margin-bottom: 20px;">
             <div style="width: 150px; height: 150px; border-radius: 50%; 
-                        border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                <img src="${fotoParaMostrar}" 
-                     style="width: 100%; height: 100%; object-fit: cover;">
+                        border: 4px solid ${colorPrincipal}; 
+                        background-image: url('${fotoParaMostrar}');
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        margin: 0 auto;">
             </div>
         </div>
     `;
@@ -1391,7 +1388,7 @@ async function cargarCV(id) {
             previewContainer.innerHTML = `
                 <div style="width: 150px; height: 150px; border-radius: 50%; 
                             border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover;" src="${fotoPerfilUrl}">
+                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilUrl}">
                 </div>
             `;
         }
@@ -1433,3 +1430,88 @@ document.addEventListener('DOMContentLoaded', function () {
         loadingScreen.classList.add('hidden');
     }, 2000);
 });
+
+// Funciones para el recorte de imagen (Cropper.js)
+function abrirCropModal(imageUrl) {
+    const modal = document.getElementById('cropModal');
+    const imageToCrop = document.getElementById('imageToCrop');
+    
+    imageToCrop.src = imageUrl;
+    modal.classList.add('show');
+    
+    if (cropperInstance) {
+        cropperInstance.destroy();
+    }
+    
+    setTimeout(() => {
+        cropperInstance = new Cropper(imageToCrop, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            preview: '.crop-preview-circle',
+            background: false,
+            responsive: true,
+            restore: false,
+            checkCrossOrigin: true,
+            autoCropArea: 0.8
+        });
+    }, 150);
+}
+
+function cerrarCropModal() {
+    const modal = document.getElementById('cropModal');
+    modal.classList.remove('show');
+    
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
+    
+    document.getElementById('FotoPerfil').value = '';
+}
+
+function rotarImagen(grados) {
+    if (cropperInstance) {
+        cropperInstance.rotate(grados);
+    }
+}
+
+function zoomImagen(factor) {
+    if (cropperInstance) {
+        cropperInstance.zoom(factor);
+    }
+}
+
+function obtenerImagenRecortada() {
+    if (!cropperInstance) return;
+    
+    cropperInstance.getCroppedCanvas({
+        width: 400,
+        height: 400,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    }).toBlob((blob) => {
+        if (!blob) return;
+        
+        if (fotoPerfilLocal && fotoPerfilLocal.startsWith('blob:')) {
+            URL.revokeObjectURL(fotoPerfilLocal);
+        }
+        
+        fotoPerfilLocal = URL.createObjectURL(blob);
+        
+        const previewContainer = document.getElementById('fotoPreviewContainer');
+        previewContainer.style.display = 'block';
+        previewContainer.innerHTML = `
+            <div style="width: 150px; height: 150px; border-radius: 50%; 
+                        border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
+                <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilLocal}">
+            </div>
+        `;
+        
+        const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        subirFotoABackground(croppedFile);
+        
+        actualizarVistaPrevia();
+        cerrarCropModal();
+    }, 'image/jpeg', 0.9);
+}

@@ -10,6 +10,7 @@
         @import url('https://fonts.cdnfonts.com/css/comic-sans-ms');
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -183,6 +184,7 @@
     <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="script.js"></script>
     <script>
         // Inicializar Firebase
@@ -198,5 +200,48 @@
     </script>
     <!-- Agregar esto dentro del <body>, por ejemplo, al final -->
 <audio id="genSound" src="gen.wav" preload="auto"></audio>
+
+<!-- Modal de Recorte de Imagen -->
+<div id="cropModal" class="crop-modal">
+    <div class="crop-modal-content">
+        <div class="crop-modal-header">
+            <h3><i class="fas fa-crop-alt"></i> Ajustar Foto de Perfil</h3>
+            <button type="button" class="close-crop-btn" onclick="cerrarCropModal()">&times;</button>
+        </div>
+        <div class="crop-modal-body">
+            <div class="cropper-container-wrapper">
+                <div class="cropper-container">
+                    <img id="imageToCrop" src="" alt="Imagen a recortar">
+                </div>
+                <div class="crop-controls">
+                    <button type="button" class="btn-control" onclick="rotarImagen(-45)" title="Rotar Izquierda -45°">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button type="button" class="btn-control" onclick="zoomImagen(0.1)" title="Acercar">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button type="button" class="btn-control" onclick="zoomImagen(-0.1)" title="Alejar">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button type="button" class="btn-control" onclick="rotarImagen(45)" title="Rotar Derecha +45°">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="crop-preview-wrapper">
+                <div class="crop-preview-title">Vista Previa Circular</div>
+                <div class="crop-preview-circle"></div>
+            </div>
+        </div>
+        <div class="crop-modal-footer">
+            <button type="button" class="danger" style="flex: none; padding: 10px 20px;" onclick="cerrarCropModal()">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button type="button" class="primary" style="flex: none; padding: 10px 20px;" onclick="obtenerImagenRecortada()">
+                <i class="fas fa-check"></i> Recortar y Guardar
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
