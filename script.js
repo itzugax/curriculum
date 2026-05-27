@@ -1515,3 +1515,120 @@ function obtenerImagenRecortada() {
         cerrarCropModal();
     }, 'image/jpeg', 0.9);
 }
+
+// Lógica de Filtro Mágico con IA de Google MediaPipe
+let selfieSegmentationInstance = null;
+
+async function aplicarMejoraMagica() {
+    if (!cropperInstance) return;
+
+    const loadingOverlay = document.getElementById('cropperLoading');
+    const loadingText = document.getElementById('cropperLoadingText');
+    loadingOverlay.style.display = 'flex';
+    loadingText.innerText = 'Iniciando IA de Google...';
+
+    try {
+        // 1. Obtener la imagen recortada del Cropper actual
+        // Extraemos un canvas de buena resolución que contiene los ajustes y rotación actuales
+        const canvas = cropperInstance.getCroppedCanvas({
+            width: 800,
+            height: 800,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+
+        // 2. Inicializar la IA de MediaPipe si no se ha hecho
+        if (!selfieSegmentationInstance) {
+            selfieSegmentationInstance = new SelfieSegmentation({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+            });
+
+            selfieSegmentationInstance.setOptions({
+                modelSelection: 1 // 1: General (más preciso para retratos)
+            });
+        }
+
+        // Crear una promesa para esperar a que la IA devuelva el resultado
+        const procesarImagenPromise = new Promise((resolve, reject) => {
+            selfieSegmentationInstance.onResults((results) => {
+                try {
+                    if (!results || !results.segmentationMask) {
+                        reject(new Error("No se detectó silueta"));
+                        return;
+                    }
+
+                    loadingText.innerText = 'Generando fondo blanco e iluminación...';
+
+                    // Crear canvas final
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = results.image.width;
+                    finalCanvas.height = results.image.height;
+                    const ctx = finalCanvas.getContext('2d');
+
+                    // Dibujar la máscara de la silueta
+                    ctx.save();
+                    ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+                    ctx.drawImage(results.segmentationMask, 0, 0, finalCanvas.width, finalCanvas.height);
+
+                    // Recortar la imagen con la máscara (modo source-in)
+                    ctx.globalCompositeOperation = 'source-in';
+                    ctx.drawImage(results.image, 0, 0, finalCanvas.width, finalCanvas.height);
+
+                    // Añadir el fondo blanco sólido por detrás de la silueta (modo destination-over)
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+                    ctx.restore();
+
+                    // Ajustar brillo y contraste sobre los píxeles de la persona
+                    const imgData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    const data = imgData.data;
+
+                    const brightness = 15; // Aumentar luz (+15)
+                    const contrast = 1.15; // Incrementar contraste (+15%)
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Saltar píxeles del fondo blanco puro
+                        if (data[i] >= 253 && data[i+1] >= 253 && data[i+2] >= 253) {
+                            continue;
+                        }
+
+                        // Ajustar canales R, G, B
+                        for (let c = 0; c < 3; c++) {
+                            let val = data[i + c];
+                            // Brillo
+                            val += brightness;
+                            // Contraste
+                            val = (val - 128) * contrast + 128;
+                            
+                            data[i + c] = Math.max(0, Math.min(255, val));
+                        }
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+
+                    // Convertir el canvas mejorado a Data URL
+                    const enhancedDataURL = finalCanvas.toDataURL('image/jpeg', 0.95);
+                    resolve(enhancedDataURL);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+
+        // 3. Enviar la imagen del Cropper a la IA
+        loadingText.innerText = 'Recortando fondo con IA...';
+        await selfieSegmentationInstance.send({ image: canvas });
+
+        // Esperar el resultado final de la promesa
+        const resultUrl = await procesarImagenPromise;
+
+        // Reemplazar la imagen en el cropper para que el usuario pueda reajustarla
+        cropperInstance.replace(resultUrl);
+        
+        loadingOverlay.style.display = 'none';
+    } catch (err) {
+        console.error("Error en mejora mágica:", err);
+        alert("Ocurrió un error al procesar la imagen con IA. Inténtalo de nuevo.");
+        loadingOverlay.style.display = 'none';
+    }
+}
