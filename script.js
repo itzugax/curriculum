@@ -1565,30 +1565,35 @@ async function aplicarMejoraMagica() {
                     finalCanvas.height = results.image.height;
                     const ctx = finalCanvas.getContext('2d');
 
-                    // Dibujar la máscara de la silueta
+                    // Dibujar la máscara de la silueta con difuminado suave (feathering) para evitar bordes duros
                     ctx.save();
                     ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+                    
+                    // Aplicar un ligero filtro de desenfoque a la máscara para suavizar la transición
+                    ctx.filter = 'blur(2.5px)';
                     ctx.drawImage(results.segmentationMask, 0, 0, finalCanvas.width, finalCanvas.height);
+                    ctx.filter = 'none'; // Desactivar el filtro para el resto de las operaciones
 
-                    // Recortar la imagen con la máscara (modo source-in)
+                    // Recortar la imagen con la máscara suavizada (modo source-in)
                     ctx.globalCompositeOperation = 'source-in';
                     ctx.drawImage(results.image, 0, 0, finalCanvas.width, finalCanvas.height);
 
-                    // Añadir el fondo blanco sólido por detrás de la silueta (modo destination-over)
+                    // Añadir el fondo blanco sólido por detrás de la silueta suavizada (modo destination-over)
                     ctx.globalCompositeOperation = 'destination-over';
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
                     ctx.restore();
 
-                    // Ajustar brillo y contraste sobre los píxeles de la persona
+                    // Ajustar brillo, contraste y calidez de forma sutil y natural
                     const imgData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
                     const data = imgData.data;
 
-                    const brightness = 15; // Aumentar luz (+15)
-                    const contrast = 1.15; // Incrementar contraste (+15%)
+                    const brightness = 8;   // Ajuste sutil de brillo (+8)
+                    const contrast = 1.08;  // Ajuste sutil de contraste (+8%)
+                    const warmth = 4;       // Aumentar calidez en el canal rojo para dar vitalidad a la piel
 
                     for (let i = 0; i < data.length; i += 4) {
-                        // Saltar píxeles del fondo blanco puro
+                        // Saltar píxeles del fondo blanco puro para mantenerlo limpio
                         if (data[i] >= 253 && data[i+1] >= 253 && data[i+2] >= 253) {
                             continue;
                         }
@@ -1600,6 +1605,11 @@ async function aplicarMejoraMagica() {
                             val += brightness;
                             // Contraste
                             val = (val - 128) * contrast + 128;
+                            
+                            // Añadir calidez al canal rojo
+                            if (c === 0) {
+                                val += warmth;
+                            }
                             
                             data[i + c] = Math.max(0, Math.min(255, val));
                         }
