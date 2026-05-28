@@ -437,63 +437,17 @@ function reiniciarTodo() {
 async function descargarPDF() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
-    
-    try {
-        let cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
-        
-        if (fotoPerfilLocal) {
-            try {
-                const base64Image = await convertirImagenABase64(fotoPerfilLocal);
-                cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
-            } catch (error) {
-                console.error("Error al convertir la imagen local:", error);
-                if (fotoPerfilUrl) {
-                    try {
-                        const base64Image = await convertirImagenABase64(fotoPerfilUrl);
-                        cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
-                    } catch (error) {
-                        console.error("Error al convertir la imagen de ImgBB:", error);
-                    }
-                }
-            }
-        } else if (fotoPerfilUrl) {
-            try {
-                const base64Image = await convertirImagenABase64(fotoPerfilUrl);
-                cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
-            } catch (error) {
-                console.error("Error al convertir la imagen:", error);
-            }
-        }
+    const filename = `${nombres}_${apellidos}_CV.pdf`.replace(/\s+/g, '_');
+    const elemento = document.getElementById('realTimePreview');
 
-        const resp = await fetch('/api/generate-pdf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                html: cvHTML,
-                nombre: nombres,
-                apellido: apellidos
-            })
-        });
-
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            throw new Error(err.error || 'Error del servidor');
-        }
-
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${nombres}_${apellidos}_CV.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-    } catch (error) {
-        console.error("Error al generar PDF:", error);
-        alert("Ocurrió un error al generar el PDF. Por favor, inténtalo de nuevo.");
-    }
+    const opt = {
+        margin: [0, 0, 0, 0],
+        filename: filename,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    await html2pdf().set(opt).from(elemento).save();
 }
 
 function convertirImagenABase64(url) {
