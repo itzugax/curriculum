@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Generador de currículums con PDF server-side",
   "dependencies": {
-    "puppeteer": "^21.0.0",
-    "@sparticuz/chromium": "^119.0.0",
-    "puppeteer-core": "^21.0.0"
+    "puppeteer": "^25.0.0",
+    "@sparticuz/chromium": "^133.0.0",
+    "puppeteer-core": "^25.0.0"
   }
 }
