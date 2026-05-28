@@ -6,6 +6,9 @@ let fotoPerfilUrl = null;
 let fotoPerfilLocal = null;
 let fotoPerfilId = null;
 let cropperInstance = null;
+let fotoUploadPromise = null;
+let fotoBase64 = null;
+let cvActualDocId = null;
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 
 // Animación de máquina de escribir para el título
@@ -34,6 +37,49 @@ function animarTitulo() {
     
     escribir();
 }
+// ─── Autoguardado ─────────────────────────────────────────────────
+function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+function contarCamposLlenos() {
+    let count = 0;
+    document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
+        if (campo.id && campo.id !== 'FotoPerfil' && campo.value.trim()) count++;
+    });
+    ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
+        const inputs = document.getElementById(id).getElementsByTagName('input');
+        for (let i = 0; i < inputs.length; i++) {
+            if (inputs[i].value.trim()) count++;
+        }
+    });
+    return count;
+}
+
+function mostrarAutoguardado(mostrar) {
+    const el = document.getElementById('autoSaveIndicator');
+    if (el) el.style.display = mostrar ? 'flex' : 'none';
+}
+
+async function autoGuardar() {
+    const nombres = document.getElementById("Nombres").value.trim();
+    const apellidos = document.getElementById("Apellidos").value.trim();
+    if (!nombres || !apellidos) {
+        mostrarAutoguardado(false);
+        return;
+    }
+    if (contarCamposLlenos() >= 3) {
+        await guardarDatos(false);
+    }
+    mostrarAutoguardado(false);
+}
+
+const autoGuardarDebounced = debounce(autoGuardar, 2000);
+
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
@@ -70,8 +116,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Configurar slider de zoom en el modal de recorte
+    const zoomSlider = document.getElementById('zoomSlider');
+    if (zoomSlider) {
+        zoomSlider.addEventListener('input', function() {
+            if (cropperInstance) {
+                cropperInstance.zoomTo(parseFloat(this.value));
+            }
+        });
+    }
+
     // Escuchar cambios en el formulario para vista previa en tiempo real
-    document.getElementById('cvForm').addEventListener('input', actualizarVistaPrevia);
+    document.getElementById('cvForm').addEventListener('input', function() {
+        actualizarVistaPrevia();
+        const nombres = document.getElementById("Nombres").value.trim();
+        const apellidos = document.getElementById("Apellidos").value.trim();
+        if (nombres && apellidos && contarCamposLlenos() >= 3) {
+            mostrarAutoguardado(true);
+        }
+        autoGuardarDebounced();
+    });
 });
 
 // Subir foto en segundo plano
@@ -91,6 +155,8 @@ async function subirFotoABackground(file) {
         }
     } catch (error) {
         console.error("Error al subir la foto:", error);
+    } finally {
+        fotoUploadPromise = null;
     }
 }
 
@@ -251,10 +317,13 @@ function limpiarFormulario() {
     fotoPerfilUrl = null;
     fotoPerfilLocal = null;
     fotoPerfilId = null;
+    fotoBase64 = null;
+    fotoUploadPromise = null;
+    cvActualDocId = null;
     actualizarVistaPrevia();
 }
 
-function generarCurriculum() {
+async function generarCurriculum() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
     
@@ -263,7 +332,7 @@ function generarCurriculum() {
         return;
     }
     
-    guardarDatos(false);
+    await guardarDatos(false);
     efectoSacudidaYDescarga(); // Inicia el efecto
 }
 
@@ -1156,25 +1225,35 @@ async function guardarDatos(mostrarAlerta = true) {
         return false;
     }
 
-    const fotoInput = document.getElementById('FotoPerfil');
-    if (!fotoPerfilUrl && fotoInput.files.length > 0 && !fotoPerfilLocal) {
-        const formData = new FormData();
-        formData.append('image', fotoInput.files[0]);
-        
-        try {
-            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (data.success) {
-                fotoPerfilUrl = data.data.url;
-                fotoPerfilId = data.data.id;
+    if (!fotoPerfilUrl) {
+        if (fotoUploadPromise) {
+            try {
+                await fotoUploadPromise;
+            } catch (e) {
+                console.error("Error esperando subida de foto:", e);
             }
-        } catch (error) {
-            console.error("Error al subir la foto:", error);
-            if (mostrarAlerta) {
-                alert("Error al subir la foto, pero los demás datos se guardaron");
+        }
+        if (!fotoPerfilUrl && fotoBase64) {
+            try {
+                const res = await fetch(fotoBase64);
+                const blob = await res.blob();
+                const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                const formData = new FormData();
+                formData.append('image', file);
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    fotoPerfilUrl = data.data.url;
+                    fotoPerfilId = data.data.id;
+                }
+            } catch (error) {
+                console.error("Error al subir la foto:", error);
+                if (mostrarAlerta) {
+                    alert("Error al subir la foto, pero los demás datos se guardaron");
+                }
             }
         }
     }
@@ -1186,6 +1265,7 @@ async function guardarDatos(mostrarAlerta = true) {
         fuenteSeleccionada,
         fotoPerfilUrl,
         fotoPerfilId,
+        fotoBase64,
         campos: {},
         fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -1205,17 +1285,25 @@ async function guardarDatos(mostrarAlerta = true) {
     try {
         const db = firebase.firestore();
         let docRef;
-        const querySnapshot = await db.collection('curriculums')
-            .where('nombres', '==', nombres)
-            .where('apellidos', '==', apellidos)
-            .limit(1)
-            .get();
         
-        if (!querySnapshot.empty) {
-            docRef = querySnapshot.docs[0].ref;
+        if (cvActualDocId) {
+            docRef = db.collection('curriculums').doc(cvActualDocId);
             await docRef.update(datos);
         } else {
-            docRef = await db.collection('curriculums').add(datos);
+            const querySnapshot = await db.collection('curriculums')
+                .where('nombres', '==', nombres)
+                .where('apellidos', '==', apellidos)
+                .limit(1)
+                .get();
+            
+            if (!querySnapshot.empty) {
+                docRef = querySnapshot.docs[0].ref;
+                cvActualDocId = docRef.id;
+                await docRef.update(datos);
+            } else {
+                docRef = await db.collection('curriculums').add(datos);
+                cvActualDocId = docRef.id;
+            }
         }
         
         if (mostrarAlerta) {
@@ -1348,6 +1436,7 @@ async function cargarCV(id) {
         const cv = doc.data();
         
         limpiarFormulario();
+        cvActualDocId = id;
         
         document.getElementById('Nombres').value = cv.nombres || '';
         document.getElementById('Apellidos').value = cv.apellidos || '';
@@ -1399,6 +1488,17 @@ async function cargarCV(id) {
                 <div style="width: 150px; height: 150px; border-radius: 50%; 
                             border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
                     <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilUrl}">
+                </div>
+            `;
+        } else if (cv.fotoBase64) {
+            fotoBase64 = cv.fotoBase64;
+            fotoPerfilLocal = cv.fotoBase64;
+            const previewContainer = document.getElementById('fotoPreviewContainer');
+            previewContainer.style.display = 'block';
+            previewContainer.innerHTML = `
+                <div style="width: 150px; height: 150px; border-radius: 50%; 
+                            border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
+                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoBase64}">
                 </div>
             `;
         }
@@ -1463,7 +1563,21 @@ function abrirCropModal(imageUrl) {
             responsive: true,
             restore: false,
             checkCrossOrigin: true,
-            autoCropArea: 0.8
+            autoCropArea: 0.8,
+            cropBoxMovable: false,
+            cropBoxResizable: false,
+            ready() {
+                const slider = document.getElementById('zoomSlider');
+                const label = document.getElementById('zoomLevel');
+                if (slider) slider.value = 1;
+                if (label) label.textContent = '100%';
+            },
+            zoom(event) {
+                const slider = document.getElementById('zoomSlider');
+                const label = document.getElementById('zoomLevel');
+                if (slider) slider.value = event.detail.ratio;
+                if (label) label.textContent = Math.round(event.detail.ratio * 100) + '%';
+            }
         });
     }, 150);
 }
@@ -1519,7 +1633,13 @@ function obtenerImagenRecortada() {
         `;
         
         const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-        subirFotoABackground(croppedFile);
+        fotoUploadPromise = subirFotoABackground(croppedFile);
+        
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            fotoBase64 = reader.result;
+        };
+        reader.readAsDataURL(blob);
         
         actualizarVistaPrevia();
         cerrarCropModal();

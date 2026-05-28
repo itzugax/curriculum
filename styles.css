@@ -653,6 +653,35 @@ button.danger {
 }
 
 /* Modal de Recorte */
+.auto-save-indicator {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    z-index: 99999;
+    animation: popIn 0.3s ease;
+    border: 2px solid rgba(255,255,255,0.15);
+    letter-spacing: 0.3px;
+}
+
+.auto-save-indicator i {
+    font-size: 16px;
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.8) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .crop-modal {
     display: none;
     position: fixed;
@@ -852,6 +881,72 @@ button.danger {
     border: 4px solid #3498db;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     background-color: #f1f5f9;
+}
+
+.zoom-slider-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 0 0;
+}
+
+.zoom-slider-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #64748b;
+    cursor: default;
+}
+
+.zoom-slider-label input[type="range"] {
+    width: 120px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #cbd5e1;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.zoom-slider-label input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #3498db;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.zoom-slider-label input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+.zoom-slider-label input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #3498db;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+
+.zoom-value {
+    min-width: 40px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.zoom-slider-label .fa-search-minus,
+.zoom-slider-label .fa-search-plus {
+    font-size: 12px;
+    color: #94a3b8;
 }
 
 /* Redondear el área de selección de Cropper.js */
