@@ -1,0 +1,10 @@
+{
+  "name": "curriculum-generator",
+  "version": "1.0.0",
+  "description": "Generador de currículums con PDF server-side",
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "@sparticuz/chromium": "^119.0.0",
+    "puppeteer-core": "^21.0.0"
+  }
+}
