@@ -1,5 +1,4 @@
 // Variables globales
-const { jsPDF } = window.jspdf;
 let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
 let fotoPerfilUrl = null;
@@ -9,6 +8,8 @@ let cropperInstance = null;
 let fotoUploadPromise = null;
 let fotoBase64 = null;
 let cvActualDocId = null;
+let fotoPosicion = 'right';
+let fotoForma = 'cuadrado';
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 
 // Animación de máquina de escribir para el título
@@ -114,6 +115,27 @@ document.addEventListener('DOMContentLoaded', function() {
             if (previewContainer) previewContainer.style.display = 'none';
             actualizarVistaPrevia();
         }
+    });
+
+    // Configurar posición de la foto
+    document.querySelectorAll('.pos-option').forEach(opt => {
+        opt.addEventListener('click', function() {
+            document.querySelectorAll('.pos-option').forEach(el => el.classList.remove('selected'));
+            this.classList.add('selected');
+            fotoPosicion = this.getAttribute('data-pos');
+            actualizarVistaPrevia();
+        });
+    });
+
+    // Configurar forma de la foto
+    document.querySelectorAll('.shape-option').forEach(opt => {
+        opt.addEventListener('click', function() {
+            document.querySelectorAll('.shape-option').forEach(el => el.classList.remove('selected'));
+            this.classList.add('selected');
+            fotoForma = this.getAttribute('data-shape');
+            document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
+            actualizarVistaPrevia();
+        });
     });
 
     // Configurar slider de zoom en el modal de recorte
@@ -320,6 +342,11 @@ function limpiarFormulario() {
     fotoBase64 = null;
     fotoUploadPromise = null;
     cvActualDocId = null;
+    fotoPosicion = 'right';
+    fotoForma = 'cuadrado';
+    document.querySelectorAll('.pos-option').forEach(el => el.classList.toggle('selected', el.getAttribute('data-pos') === fotoPosicion));
+    document.querySelectorAll('.shape-option').forEach(el => el.classList.toggle('selected', el.getAttribute('data-shape') === fotoForma));
+    document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
     actualizarVistaPrevia();
 }
 
@@ -333,45 +360,57 @@ async function generarCurriculum() {
     }
     
     await guardarDatos(false);
-    efectoSacudidaYDescarga(); // Inicia el efecto
+    mostrarPantallaCarga();
 }
 
-// Efecto de sacudida y descarga ajustado
-async function efectoSacudidaYDescarga() {
-    const body = document.body;
+async function mostrarPantallaCarga() {
     const overlay = document.createElement('div');
-    overlay.className = 'white-overlay';
-    body.appendChild(overlay);
-    body.classList.add('shake-effect');
+    overlay.className = 'carga-overlay';
+    overlay.innerHTML = `
+        <div class="carga-card">
+            <div class="carga-spinner">
+                <svg class="spinner-ring" viewBox="0 0 80 80">
+                    <circle class="spinner-bg" cx="40" cy="40" r="32" fill="none" stroke-width="4"/>
+                    <circle class="spinner-fill" cx="40" cy="40" r="32" fill="none" stroke-width="4"/>
+                </svg>
+                <span class="carga-icon"><i class="fas fa-file-alt"></i></span>
+            </div>
+            <p class="carga-texto" id="cargaTexto">Preparando CV...</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.classList.add('show'), 10);
 
-    // Reproducir sonido
-    const genSound = document.getElementById('genSound');
-    genSound.play().catch(error => console.error("Error al reproducir sonido:", error));
+    await descargarPDF();
 
-    // 3 segundos de sacudida antes del desvanecimiento
+    const texto = document.getElementById('cargaTexto');
+    texto.textContent = '¡CV listo!';
+    texto.className = 'carga-texto carga-exito';
+    overlay.querySelector('.carga-spinner').classList.add('completo');
+
+    await new Promise(r => setTimeout(r, 800));
+    overlay.classList.remove('show');
+    setTimeout(() => document.body.removeChild(overlay), 300);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    mostrarToast('¡CV descargado con éxito!');
+    reiniciarTodo();
+    actualizarVistaPrevia();
+}
+
+function mostrarToast(mensaje) {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
-        // Comienza el desvanecimiento
-        overlay.style.animation = 'fadeToWhite 0.5s ease forwards';
-
-        // Después de 0.5s (fin del desvanecimiento), congelar y descargar
-        setTimeout(async () => {
-            overlay.classList.add('freeze-white');
-            await descargarPDF(); // Descarga el PDF al inicio del congelamiento
-
-            // 3 segundos de congelamiento, luego subir y limpiar
-            setTimeout(() => {
-                // Subir la página al inicio mientras está en blanco
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                
-                // Remover efectos y reiniciar
-                body.classList.remove('shake-effect');
-                body.removeChild(overlay);
-                reiniciarTodo(); // Reinicia solo el formulario y opciones
-                actualizarVistaPrevia();
-                alert('¡CV descargado con éxito!');
-            }, 3000); // Congelamiento dura 3 segundos
-        }, 500); // Desvanecimiento dura 0.5 segundos
-    }, 3000); // Sacudida dura 3 segundos (cambiado de 2000 a 3000)
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
 }
 
 // Nueva función para reiniciar todo
@@ -395,70 +434,61 @@ function reiniciarTodo() {
     actualizarEstilos();
 }
 
-// Ajuste en descargarPDF (eliminamos el appendChild duplicado)
 async function descargarPDF() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
-    
-    try {
-        const element = document.createElement('div');
-        element.className = 'cv-template';
-        let cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
-        
-        if (fotoPerfilLocal) {
-            try {
-                const base64Image = await convertirImagenABase64(fotoPerfilLocal);
-                cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
-            } catch (error) {
-                console.error("Error al convertir la imagen local:", error);
-                if (fotoPerfilUrl) {
-                    try {
-                        const base64Image = await convertirImagenABase64(fotoPerfilUrl);
-                        cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
-                    } catch (error) {
-                        console.error("Error al convertir la imagen de ImgBB:", error);
-                    }
+
+    const element = document.createElement('div');
+    let cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
+
+    if (fotoPerfilLocal) {
+        try {
+            const base64Image = await convertirImagenABase64(fotoPerfilLocal);
+            cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
+        } catch (error) {
+            console.error("Error al convertir la imagen local:", error);
+            if (fotoPerfilUrl) {
+                try {
+                    const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+                    cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+                } catch (error) {
+                    console.error("Error al convertir la imagen de ImgBB:", error);
                 }
             }
-        } else if (fotoPerfilUrl) {
-            try {
-                const base64Image = await convertirImagenABase64(fotoPerfilUrl);
-                cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
-            } catch (error) {
-                console.error("Error al convertir la imagen:", error);
-            }
         }
-        
-        element.innerHTML = cvHTML;
-        document.body.appendChild(element);
-
-        const opt = {
-            margin: [15, 15],
-            filename: `${nombres}_${apellidos}_CV.pdf`,
-            image: { type: 'jpeg', quality: 1 },
-            html2canvas: { 
-                scale: 2,
-                letterRendering: true,
-                useCORS: true,
-                scrollX: 0,
-                scrollY: 0,
-                allowTaint: true,
-                proxy: 'https://cors-anywhere.herokuapp.com/'
-            },
-            jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
-                orientation: 'portrait'
-            }
-        };
-
-        await html2pdf().set(opt).from(element).save();
-        document.body.removeChild(element); // Limpiar después de descargar
-        
-    } catch (error) {
-        console.error("Error al generar PDF:", error);
-        alert("Ocurrió un error al generar el PDF. Por favor, inténtalo de nuevo.");
+    } else if (fotoPerfilUrl) {
+        try {
+            const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+            cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+        } catch (error) {
+            console.error("Error al convertir la imagen:", error);
+        }
     }
+
+    element.innerHTML = cvHTML;
+    document.body.appendChild(element);
+
+    const opt = {
+        margin: [15, 15],
+        filename: `${nombres}_${apellidos}_CV.pdf`,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: {
+            scale: 2,
+            letterRendering: true,
+            useCORS: true,
+            scrollX: 0,
+            scrollY: 0,
+            allowTaint: true
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        }
+    };
+
+    await html2pdf().set(opt).from(element).save();
+    document.body.removeChild(element);
 }
 
 function convertirImagenABase64(url) {
@@ -495,20 +525,20 @@ function generarHTMLCV(formato = document.getElementById('PreviewFormatoCV').val
     }
 }
 
-function generarFotoPerfilHTML() {
+function generarFotoPerfilHTML(tamano = 100) {
     const fotoParaMostrar = fotoPerfilLocal || fotoPerfilUrl;
     if (!fotoParaMostrar) return '';
     
+    const borderRadius = fotoForma === 'circulo' ? '50%' : `${tamano * 0.12}px`;
+    
     return `
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div style="width: 150px; height: 150px; border-radius: 50%; 
-                        border: 4px solid ${colorPrincipal}; 
-                        background-image: url('${fotoParaMostrar}');
-                        background-size: cover;
-                        background-position: center;
-                        background-repeat: no-repeat;
-                        margin: 0 auto;">
-            </div>
+        <div style="width: ${tamano}px; height: ${tamano}px; border-radius: ${borderRadius}; 
+                    border: 3px solid ${colorPrincipal}; 
+                    background-image: url('${fotoParaMostrar}');
+                    background-size: cover;
+                    background-position: center;
+                    background-repeat: no-repeat;
+                    flex-shrink: 0;">
         </div>
     `;
 }
@@ -542,14 +572,14 @@ function generarFormatoProfesional() {
                 }
                 .header {
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
+                    gap: 24px;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 3px solid ${colorPrincipal};
                 }
                 .name-title {
-                    flex: 2;
+                    flex: 1;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -573,6 +603,7 @@ function generarFormatoProfesional() {
                 }
                 .section {
                     margin-bottom: 25px;
+
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -602,12 +633,18 @@ function generarFormatoProfesional() {
                     border-radius: 20px;
                     font-size: 13px;
                 }
+                .experience-item::before {
+                    content: "•";
+                    color: ${colorPrincipal};
+                    font-weight: bold;
+                    margin-right: 8px;
+                }
             </style>
         </head>
         <body>
             <div class="cv-container">
-                ${fotoPerfil}
-                <div class="header">
+                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
+                    ${fotoPerfil}
                     <div class="name-title">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                         <div class="contact-info">
@@ -692,7 +729,9 @@ function generarFormatoMinimalista() {
                     background: white;
                 }
                 .header {
-                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    gap: 24px;
                     margin-bottom: 40px;
                 }
                 h1 {
@@ -704,7 +743,6 @@ function generarFormatoMinimalista() {
                 .contact-info {
                     margin-top: 20px;
                     display: flex;
-                    justify-content: center;
                     flex-wrap: wrap;
                     gap: 20px;
                 }
@@ -719,6 +757,7 @@ function generarFormatoMinimalista() {
                 }
                 .section {
                     margin-bottom: 30px;
+
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -752,13 +791,15 @@ function generarFormatoMinimalista() {
         </head>
         <body>
             <div class="cv-container">
-                ${fotoPerfil}
-                <div class="header">
-                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
+                    ${fotoPerfil}
+                    <div>
+                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                        <div class="contact-info">
+                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                        </div>
                     </div>
                 </div>
                 
@@ -790,7 +831,9 @@ function generarFormatoMinimalista() {
         </body>
         </html>
     `;
+    return resultado;
 }
+
 
 function generarFormatoCreativo() {
     const datosBasicos = obtenerDatosBasicos();
@@ -830,7 +873,9 @@ function generarFormatoCreativo() {
                     background: ${colorPrincipal};
                 }
                 .header {
-                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    gap: 24px;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                 }
@@ -842,7 +887,6 @@ function generarFormatoCreativo() {
                 }
                 .contact-info {
                     display: flex;
-                    justify-content: center;
                     flex-wrap: wrap;
                     gap: 20px;
                     margin-top: 15px;
@@ -857,6 +901,7 @@ function generarFormatoCreativo() {
                     background: #f9f9f9;
                     padding: 15px;
                     border-radius: 8px;
+
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -883,13 +928,15 @@ function generarFormatoCreativo() {
         </head>
         <body>
             <div class="cv-container">
-                ${fotoPerfil}
-                <div class="header">
-                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
+                    ${fotoPerfil}
+                    <div>
+                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                        <div class="contact-info">
+                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
+                        </div>
                     </div>
                 </div>
                 
@@ -986,6 +1033,7 @@ function generarFormatoModerno() {
                 }
                 .section {
                     margin-bottom: 25px;
+
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -1005,8 +1053,10 @@ function generarFormatoModerno() {
         </head>
         <body>
             <div class="cv-container">
-                ${fotoPerfil}
                 <div class="left-column">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        ${fotoPerfil}
+                    </div>
                     <div class="header">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                         <div class="contact-info">
@@ -1042,6 +1092,7 @@ function generarFormatoModerno() {
         </body>
         </html>
     `;
+    return resultado;
 }
 
 function generarFormatoClasico() {
@@ -1072,7 +1123,9 @@ function generarFormatoClasico() {
                     background: white;
                 }
                 .header {
-                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    gap: 24px;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 2px solid ${colorPrincipal};
@@ -1089,6 +1142,7 @@ function generarFormatoClasico() {
                 }
                 .section {
                     margin-bottom: 20px;
+
                 }
                 .section-title {
                     background: ${colorPrincipal};
@@ -1107,13 +1161,15 @@ function generarFormatoClasico() {
         </head>
         <body>
             <div class="cv-container">
-                ${fotoPerfil}
-                <div class="header">
-                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                    <div class="contact-info">
-                        ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
-                        ${document.getElementById('Telefono').value ? `<span>${document.getElementById('Telefono').value}</span> | ` : ''}
-                        ${document.getElementById('Direccion').value ? `<span>${document.getElementById('Direccion').value}</span>` : ''}
+                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
+                    ${fotoPerfil}
+                    <div>
+                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                        <div class="contact-info">
+                            ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
+                            ${document.getElementById('Telefono').value ? `<span>${document.getElementById('Telefono').value}</span> | ` : ''}
+                            ${document.getElementById('Direccion').value ? `<span>${document.getElementById('Direccion').value}</span>` : ''}
+                        </div>
                     </div>
                 </div>
                 
@@ -1266,6 +1322,8 @@ async function guardarDatos(mostrarAlerta = true) {
         fotoPerfilUrl,
         fotoPerfilId,
         fotoBase64,
+        fotoPosicion,
+        fotoForma,
         campos: {},
         fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -1479,15 +1537,16 @@ async function cargarCV(id) {
             }
         });
         
+        const previewBorderRadius = (fotoForma === 'circulo') ? '50%' : '16px';
         if (cv.fotoPerfilUrl) {
             fotoPerfilUrl = cv.fotoPerfilUrl;
             fotoPerfilId = cv.fotoPerfilId;
             const previewContainer = document.getElementById('fotoPreviewContainer');
             previewContainer.style.display = 'block';
             previewContainer.innerHTML = `
-                <div style="width: 150px; height: 150px; border-radius: 50%; 
+                <div style="width: 150px; height: 150px; border-radius: ${previewBorderRadius}; 
                             border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilUrl}">
+                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: ${previewBorderRadius}; display: block;" src="${fotoPerfilUrl}">
                 </div>
             `;
         } else if (cv.fotoBase64) {
@@ -1496,15 +1555,18 @@ async function cargarCV(id) {
             const previewContainer = document.getElementById('fotoPreviewContainer');
             previewContainer.style.display = 'block';
             previewContainer.innerHTML = `
-                <div style="width: 150px; height: 150px; border-radius: 50%; 
+                <div style="width: 150px; height: 150px; border-radius: ${previewBorderRadius}; 
                             border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoBase64}">
+                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: ${previewBorderRadius}; display: block;" src="${fotoBase64}">
                 </div>
             `;
         }
         
         colorPrincipal = cv.colorPrincipal || '#3498db';
         fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
+        fotoPosicion = cv.fotoPosicion || 'left';
+        fotoForma = cv.fotoForma || 'circulo';
+        document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
         
         document.querySelectorAll('.color-option').forEach(opt => {
             if (opt.getAttribute('data-color') === colorPrincipal) {
@@ -1516,6 +1578,22 @@ async function cargarCV(id) {
         
         document.querySelectorAll('.font-option').forEach(opt => {
             if (opt.getAttribute('data-font') === fuenteSeleccionada) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
+        });
+        
+        document.querySelectorAll('.pos-option').forEach(opt => {
+            if (opt.getAttribute('data-pos') === fotoPosicion) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
+        });
+        
+        document.querySelectorAll('.shape-option').forEach(opt => {
+            if (opt.getAttribute('data-shape') === fotoForma) {
                 opt.classList.add('selected');
             } else {
                 opt.classList.remove('selected');
@@ -1545,6 +1623,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function abrirCropModal(imageUrl) {
     const modal = document.getElementById('cropModal');
     const imageToCrop = document.getElementById('imageToCrop');
+    document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
     
     imageToCrop.src = imageUrl;
     modal.classList.add('show');
@@ -1623,12 +1702,13 @@ function obtenerImagenRecortada() {
         
         fotoPerfilLocal = URL.createObjectURL(blob);
         
+        const previewBorderRadius = fotoForma === 'circulo' ? '50%' : '16px';
         const previewContainer = document.getElementById('fotoPreviewContainer');
         previewContainer.style.display = 'block';
         previewContainer.innerHTML = `
-            <div style="width: 150px; height: 150px; border-radius: 50%; 
+            <div style="width: 150px; height: 150px; border-radius: ${previewBorderRadius}; 
                         border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilLocal}">
+                <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: ${previewBorderRadius}; display: block;" src="${fotoPerfilLocal}">
             </div>
         `;
         

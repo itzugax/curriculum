@@ -96,9 +96,7 @@
                 <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
                 <label><i class="fas fa-id-card"></i> Cédula:</label>
-                <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,
-
-3}(?:\.\d{3})*$">
+                <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
 
                 <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
                 <input type="date" id="FechaNacimiento">
@@ -190,18 +188,31 @@
                     <option value="creativo">Creativo</option>
                     <option value="moderno">Moderno</option>
                     <option value="clasico">Clásico</option>
-                    <option value="profesional">Profesional</option>
+                    <option value="profesional" selected>Profesional</option>
                     <option value="minimalista">Minimalista</option>
                 </select>
+                <div class="photo-controls">
+                    <div class="pos-option selected" data-pos="right" title="Foto a la derecha">
+                        <i class="fas fa-align-right"></i>
+                    </div>
+                    <div class="pos-option" data-pos="left" title="Foto a la izquierda">
+                        <i class="fas fa-align-left"></i>
+                    </div>
+                    <div class="shape-option selected" data-shape="cuadrado" title="Foto cuadrada">
+                        <i class="fas fa-square"></i>
+                    </div>
+                    <div class="shape-option" data-shape="circulo" title="Foto circular">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                </div>
             </div>
             <div class="preview-content" id="realTimePreview"></div>
         </div>
     </div>
 
     <!-- Librerías JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="script.js"></script>
     <script>
         // Inicializar Firebase
@@ -216,7 +227,6 @@
         firebase.initializeApp(firebaseConfig);
     </script>
     <!-- Agregar esto dentro del <body>, por ejemplo, al final -->
-<audio id="genSound" src="gen.wav" preload="auto"></audio>
 
 <!-- Modal de Recorte de Imagen -->
 <div id="cropModal" class="crop-modal">
@@ -261,7 +271,7 @@
                 </div>
             </div>
             <div class="crop-preview-wrapper">
-                <div class="crop-preview-title">Vista Previa Circular</div>
+                <div class="crop-preview-title">Vista Previa</div>
                 <div class="crop-preview-circle"></div>
             </div>
         </div>

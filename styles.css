@@ -53,47 +53,6 @@ body {
     to { opacity: 1; }
 }
 
-/* Efecto de sacudida para toda la página */
-.shake-effect {
-    animation: shake 3s ease-in-out; /* Cambiado de 2s a 3s */
-}
-
-@keyframes shake {
-    0% { transform: translate(0, 0); }
-    10% { transform: translate(-10px, -10px); }
-    20% { transform: translate(10px, 10px); }
-    30% { transform: translate(-8px, -8px); }
-    40% { transform: translate(8px, 8px); }
-    50% { transform: translate(-6px, -6px); }
-    60% { transform: translate(6px, 6px); }
-    70% { transform: translate(-4px, -4px); }
-    80% { transform: translate(4px, 4px); }
-    90% { transform: translate(-2px, -2px); }
-    100% { transform: translate(0, 0); }
-}
-
-/* Overlay blanco */
-.white-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0);
-    animation: fadeToWhite 0.5s ease forwards;
-    z-index: 1000;
-}
-
-@keyframes fadeToWhite {
-    0% { background: rgba(255, 255, 255, 0); }
-    100% { background: rgba(255, 255, 255, 1); }
-}
-
-.white-overlay.freeze-white {
-    animation: none;
-    background: rgba(255, 255, 255, 1);
-}
-
 /* Contenedor principal */
 .main-container {
     display: flex;
@@ -181,11 +140,14 @@ body {
 }
 
 .preview-header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .preview-header select {
-    width: 100%;
     max-width: 200px;
     padding: 8px;
     border-radius: 8px;
@@ -198,6 +160,43 @@ body {
 .preview-header select:hover {
     border-color: #3498db;
     transform: scale(1.05);
+}
+
+.photo-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.photo-controls .pos-option,
+.photo-controls .shape-option {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: #475569;
+    font-size: 16px;
+    transition: all 0.25s ease;
+    flex: none;
+}
+
+.photo-controls .pos-option:hover,
+.photo-controls .shape-option:hover {
+    border-color: #3498db;
+    color: #3498db;
+    background: #eff6ff;
+}
+
+.photo-controls .pos-option.selected,
+.photo-controls .shape-option.selected {
+    border-color: #3498db;
+    background: #3498db;
+    color: #fff;
 }
 
 /* Agenda lateral */
@@ -876,7 +875,7 @@ button.danger {
 .crop-preview-circle {
     width: 150px;
     height: 150px;
-    border-radius: 50%;
+    border-radius: var(--preview-border-radius, 50%);
     overflow: hidden;
     border: 4px solid #3498db;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -1072,4 +1071,118 @@ button.danger {
 
 .btn-preload i.fa-spin {
     color: #6c5ce7;
+}
+
+/* Toast notification */
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b;
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Pantalla de carga con spinner */
+.carga-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.carga-overlay.show {
+    opacity: 1;
+}
+
+.carga-card {
+    text-align: center;
+}
+
+.carga-spinner {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner-ring {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    transform: rotate(-90deg);
+}
+
+.spinner-bg {
+    stroke: rgba(255, 255, 255, 0.15);
+}
+
+.spinner-fill {
+    stroke: #fff;
+    stroke-dasharray: 201;
+    stroke-dashoffset: 201;
+    stroke-linecap: round;
+    animation: spinner-fill 1.2s ease-in-out infinite;
+}
+
+@keyframes spinner-fill {
+    0% { stroke-dashoffset: 201; transform: rotate(0deg); }
+    50% { stroke-dashoffset: 50; }
+    100% { stroke-dashoffset: 201; transform: rotate(360deg); }
+}
+
+.carga-spinner.completo .spinner-fill {
+    animation: none;
+    stroke-dashoffset: 0;
+    stroke: #2ecc71;
+    transition: stroke 0.3s ease, stroke-dashoffset 0.3s ease;
+}
+
+.carga-spinner.completo .spinner-bg {
+    stroke: rgba(46, 204, 113, 0.2);
+}
+
+.carga-icon {
+    font-size: 28px;
+    color: #fff;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.carga-spinner.completo .carga-icon i {
+    color: #2ecc71;
+}
+
+.carga-texto {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+    transition: color 0.3s ease;
+}
+
+.carga-texto.carga-exito {
+    color: #2ecc71;
 }
