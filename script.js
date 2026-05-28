@@ -438,16 +438,27 @@ async function descargarPDF() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
     const filename = `${nombres}_${apellidos}_CV.pdf`.replace(/\s+/g, '_');
-    const elemento = document.getElementById('realTimePreview');
+
+    const temp = document.createElement('div');
+    temp.style.width = '210mm';
+    temp.style.background = 'white';
+    temp.style.padding = '10mm 15mm';
+    temp.style.fontFamily = fuenteSeleccionada;
+    temp.style.color = '#333';
+    temp.style.lineHeight = '1.5';
+    temp.style.fontSize = '12pt';
+    temp.innerHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
+    document.body.appendChild(temp);
 
     const opt = {
-        margin: [0, 0, 0, 0],
+        margin: 0,
         filename: filename,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    await html2pdf().set(opt).from(elemento).save();
+    await html2pdf().set(opt).from(temp).save();
+    document.body.removeChild(temp);
 }
 
 function convertirImagenABase64(url) {
