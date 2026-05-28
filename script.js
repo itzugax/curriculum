@@ -439,25 +439,31 @@ async function descargarPDF() {
     const apellidos = document.getElementById("Apellidos").value;
     const filename = `${nombres}_${apellidos}_CV.pdf`.replace(/\s+/g, '_');
 
+    const cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
+    const parser = new DOMParser();
+    const docHTML = parser.parseFromString(cvHTML, 'text/html');
+    const bodyContent = docHTML.body;
+
+    if (!bodyContent || !bodyContent.innerHTML.trim()) {
+        console.error('No hay contenido HTML para el PDF');
+        return;
+    }
+
     const temp = document.createElement('div');
-    temp.style.width = '210mm';
-    temp.style.background = 'white';
-    temp.style.padding = '10mm 15mm';
-    temp.style.fontFamily = fuenteSeleccionada;
-    temp.style.color = '#333';
-    temp.style.lineHeight = '1.5';
-    temp.style.fontSize = '12pt';
-    temp.innerHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
+    temp.style.cssText = 'position:fixed;left:0;top:0;width:210mm;background:white;';
+    const styles = docHTML.head.querySelectorAll('style');
+    styles.forEach(s => temp.appendChild(s.cloneNode(true)));
+    temp.appendChild(bodyContent.cloneNode(true));
     document.body.appendChild(temp);
 
-    const opt = {
-        margin: 0,
+    const pdfOpts = {
+        margin: 10,
         filename: filename,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
-    await html2pdf().set(opt).from(temp).save();
+    await html2pdf().set(pdfOpts).from(temp).save();
     document.body.removeChild(temp);
 }
 
