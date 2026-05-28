@@ -3,7 +3,7 @@ let launchOpts = { headless: true, defaultViewport: { width: 794, height: 1123 }
 
 async function initPuppeteer() {
   try {
-    const chromium = await import('@sparticuz/chromium');
+    const chromium = (await import('@sparticuz/chromium')).default;
     puppeteer = (await import('puppeteer-core')).default;
     launchOpts.args = chromium.args;
     launchOpts.executablePath = await chromium.executablePath();
