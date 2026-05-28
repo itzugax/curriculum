@@ -437,34 +437,58 @@ function reiniciarTodo() {
 async function descargarPDF() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
-    const filename = `${nombres}_${apellidos}_CV.pdf`.replace(/\s+/g, '_');
 
-    const cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
-    const parser = new DOMParser();
-    const docHTML = parser.parseFromString(cvHTML, 'text/html');
-    const bodyContent = docHTML.body;
+    const element = document.createElement('div');
+    let cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
 
-    if (!bodyContent || !bodyContent.innerHTML.trim()) {
-        console.error('No hay contenido HTML para el PDF');
-        return;
+    if (fotoPerfilLocal) {
+        try {
+            const base64Image = await convertirImagenABase64(fotoPerfilLocal);
+            cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
+        } catch (error) {
+            console.error("Error al convertir la imagen local:", error);
+            if (fotoPerfilUrl) {
+                try {
+                    const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+                    cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+                } catch (error) {
+                    console.error("Error al convertir la imagen de ImgBB:", error);
+                }
+            }
+        }
+    } else if (fotoPerfilUrl) {
+        try {
+            const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+            cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+        } catch (error) {
+            console.error("Error al convertir la imagen:", error);
+        }
     }
 
-    const temp = document.createElement('div');
-    temp.style.cssText = 'position:fixed;left:0;top:0;width:210mm;background:white;';
-    const styles = docHTML.head.querySelectorAll('style');
-    styles.forEach(s => temp.appendChild(s.cloneNode(true)));
-    temp.appendChild(bodyContent.cloneNode(true));
-    document.body.appendChild(temp);
+    element.innerHTML = cvHTML;
+    document.body.appendChild(element);
 
-    const pdfOpts = {
-        margin: 10,
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    const opt = {
+        margin: [15, 15],
+        filename: `${nombres}_${apellidos}_CV.pdf`,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: {
+            scale: 2,
+            letterRendering: true,
+            useCORS: true,
+            scrollX: 0,
+            scrollY: 0,
+            allowTaint: true
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        }
     };
-    await html2pdf().set(pdfOpts).from(temp).save();
-    document.body.removeChild(temp);
+
+    await html2pdf().set(opt).from(element).save();
+    document.body.removeChild(element);
 }
 
 function convertirImagenABase64(url) {
