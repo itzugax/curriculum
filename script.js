@@ -40,19 +40,8 @@ function animarTitulo() {
     escribir();
 }
 // ─── Sugerencias y Autocompletado ────────────────────────────────
-function levenshtein(a, b) {
-    const m = [];
-    for (let i = 0; i <= b.length; i++) m[i] = [i];
-    for (let j = 0; j <= a.length; j++) m[0][j] = j;
-    for (let i = 1; i <= b.length; i++)
-        for (let j = 1; j <= a.length; j++)
-            m[i][j] = b[i - 1] === a[j - 1] ? m[i - 1][j - 1]
-                : Math.min(m[i - 1][j - 1] + 1, m[i][j - 1] + 1, m[i - 1][j] + 1);
-    return m[b.length][a.length];
-}
-function similitud(a, b) {
-    const maxLen = Math.max(a.length, b.length);
-    return maxLen === 0 ? 1 : 1 - levenshtein(a, b) / maxLen;
+function normalizarTexto(txt) {
+    return txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 const FIELD_SUGGESTIONS_MAP = {
@@ -89,8 +78,8 @@ async function buildSuggestions() {
                     if (k === 'Experiencia' || k === 'Habilidades' || k === 'Cursos') return;
                     if (cv.campos[k]) suggestionsMap[k].push(cv.campos[k]);
                 });
-                ['EducacionSuperiorCampos', 'Experiencia', 'Habilidades', 'Cursos'].forEach(arrKey => {
-                    const mapKey = arrKey === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : arrKey;
+                ['EducacionSuperiorCampos', 'EducacionPrimariaCampos', 'EducacionSecundariaCampos', 'Experiencia', 'Habilidades', 'Cursos'].forEach(arrKey => {
+                    const mapKey = arrKey === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : arrKey === 'EducacionPrimariaCampos' ? 'EducacionPrimaria' : arrKey === 'EducacionSecundariaCampos' ? 'EducacionSecundaria' : arrKey;
                     if (cv.campos[arrKey] && Array.isArray(cv.campos[arrKey])) {
                         cv.campos[arrKey].forEach(v => { if (v && v.trim()) suggestionsMap[mapKey].push(v.trim()); });
                     }
@@ -132,19 +121,22 @@ function configurarCorreccion(input, fieldKey) {
     if (fieldKey === 'Nombres' || fieldKey === 'Apellidos') return;
     input.addEventListener('keydown', function() { this.dataset.userModified = 'true'; });
     input.addEventListener('blur', function() {
-        if (this.dataset.userModified === 'true') return;
-        const val = this.value.trim();
-        if (!val || val.length < 3) return;
-        const suggestions = suggestionsMap[fieldKey] || [];
-        if (!suggestions.length) return;
-        let best = null, bestScore = 0;
-        const vLow = val.toLowerCase();
-        for (const s of suggestions) {
-            const score = similitud(vLow, s.toLowerCase());
-            if (score > bestScore) { bestScore = score; best = s; }
+        let val = this.value.trim();
+        if (!val) return;
+        let changed = false;
+        if (val.length > 0) {
+            const capped = val.charAt(0).toUpperCase() + val.slice(1);
+            if (capped !== val) { val = capped; changed = true; }
         }
-        if (best && bestScore > 0.8 && best.toLowerCase() !== vLow) {
-            this.value = best;
+        const suggestions = suggestionsMap[fieldKey] || [];
+        if (suggestions.length) {
+            const norm = normalizarTexto(val);
+            for (const s of suggestions) {
+                if (normalizarTexto(s) === norm && s !== val) { val = s; changed = true; break; }
+            }
+        }
+        if (changed) {
+            this.value = val;
             this.dispatchEvent(new Event('input', { bubbles: true }));
         }
     });
@@ -161,10 +153,10 @@ function setupAutocomplete() {
         const input = document.getElementById(fieldKey);
         if (input && input.tagName === 'INPUT') configurarAutocompletadoInput(input, fieldKey);
     });
-    document.querySelectorAll('#EducacionSuperiorCampos input, #Experiencia input, #Habilidades input, #Cursos input').forEach(inp => {
+    document.querySelectorAll('#EducacionSuperiorCampos input, #EducacionPrimariaCampos input, #EducacionSecundariaCampos input, #Experiencia input, #Habilidades input, #Cursos input').forEach(inp => {
         const container = inp.closest('[id]');
         if (!container) return;
-        const mapKey = container.id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : container.id;
+        const mapKey = container.id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : container.id === 'EducacionPrimariaCampos' ? 'EducacionPrimaria' : container.id === 'EducacionSecundariaCampos' ? 'EducacionSecundaria' : container.id;
         configurarAutocompletadoInput(inp, mapKey);
     });
 }
@@ -189,7 +181,7 @@ function actualizarSugerenciasLocales(datos) {
             if (dl) actualizarDatalist(dl, suggestionsMap[k]);
         }
     });
-    [['EducacionSuperiorCampos', 'EducacionSuperior'], ['Experiencia', 'Experiencia'], ['Habilidades', 'Habilidades'], ['Cursos', 'Cursos']].forEach(([arrKey, mapKey]) => {
+    [['EducacionSuperiorCampos', 'EducacionSuperior'], ['EducacionPrimariaCampos', 'EducacionPrimaria'], ['EducacionSecundariaCampos', 'EducacionSecundaria'], ['Experiencia', 'Experiencia'], ['Habilidades', 'Habilidades'], ['Cursos', 'Cursos']].forEach(([arrKey, mapKey]) => {
         if (datos.campos?.[arrKey] && Array.isArray(datos.campos[arrKey])) {
             datos.campos[arrKey].forEach(v => {
                 if (v && v.trim() && !suggestionsMap[mapKey]?.includes(v.trim())) {
@@ -216,7 +208,7 @@ function contarCamposLlenos() {
     document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
         if (campo.id && campo.id !== 'FotoPerfil' && campo.value.trim()) count++;
     });
-    ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
+    ['EducacionSuperiorCampos', 'EducacionPrimariaCampos', 'EducacionSecundariaCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
         const inputs = document.getElementById(id).getElementsByTagName('input');
         for (let i = 0; i < inputs.length; i++) {
             if (inputs[i].value.trim()) count++;
@@ -309,6 +301,20 @@ document.addEventListener('DOMContentLoaded', function() {
         zoomSlider.addEventListener('input', function() {
             if (cropperInstance) {
                 cropperInstance.zoomTo(parseFloat(this.value));
+            }
+        });
+    }
+
+    // Formatear cédula automáticamente
+    const cedulaInput = document.getElementById('Cedula');
+    if (cedulaInput) {
+        cedulaInput.addEventListener('input', function() {
+            let val = this.value.replace(/[^\d]/g, '');
+            if (val) {
+                const parts = [];
+                while (val.length > 3) { parts.unshift(val.slice(-3)); val = val.slice(0, -3); }
+                if (val) parts.unshift(val);
+                this.value = parts.join('.');
             }
         });
     }
@@ -458,9 +464,12 @@ function actualizarDatos() {
 
 // Agregar campo extra
 function agregarCampo(id) {
-    const div = id === "EducacionSuperior" 
-        ? document.getElementById("EducacionSuperiorCampos") 
-        : document.getElementById(id);
+    const divMap = {
+        "EducacionSuperior": "EducacionSuperiorCampos",
+        "EducacionPrimaria": "EducacionPrimariaCampos",
+        "EducacionSecundaria": "EducacionSecundariaCampos"
+    };
+    const div = divMap[id] ? document.getElementById(divMap[id]) : document.getElementById(id);
 
     const input = document.createElement("input");
     input.type = "text";
@@ -498,7 +507,7 @@ function agregarCampo(id) {
 
 function limpiarFormulario() {
     document.getElementById("cvForm").reset();
-    document.querySelectorAll("#EducacionSuperiorCampos, #Habilidades, #Experiencia, #Cursos").forEach(div => {
+    document.querySelectorAll("#EducacionSuperiorCampos, #EducacionPrimariaCampos, #EducacionSecundariaCampos, #Habilidades, #Experiencia, #Cursos").forEach(div => {
         div.innerHTML = "";
     });
     document.getElementById("EstadoCivil").innerHTML = "";
@@ -1499,7 +1508,7 @@ async function guardarDatos(mostrarAlerta = true) {
         if (campo.id && campo.id !== 'FotoPerfil') datos.campos[campo.id] = campo.value;
     });
 
-    ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
+    ['EducacionSuperiorCampos', 'EducacionPrimariaCampos', 'EducacionSecundariaCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
         datos.campos[id] = [];
         const inputs = document.getElementById(id).getElementsByTagName('input');
         for (let input of inputs) {
@@ -1674,7 +1683,7 @@ async function cargarCV(id) {
             }
         }
         
-        ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
+    ['EducacionSuperiorCampos', 'EducacionPrimariaCampos', 'EducacionSecundariaCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
             const div = document.getElementById(id);
             if (div && cv.campos[id]) {
                 div.innerHTML = '';
@@ -1696,7 +1705,7 @@ async function cargarCV(id) {
                         };
                         
                         input.addEventListener('input', actualizarVistaPrevia);
-                        const mapKey = id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : id;
+                        const mapKey = id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : id === 'EducacionPrimariaCampos' ? 'EducacionPrimaria' : id === 'EducacionSecundariaCampos' ? 'EducacionSecundaria' : id;
                         configurarAutocompletadoInput(input, mapKey);
                         
                         div.appendChild(input);

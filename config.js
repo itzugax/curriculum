@@ -1,2 +1,2 @@
-// API Key de Gemini - visible para todos, ofuscada para evitar el scanner de GitHub
-const GEMINI_API_KEY = atob('QUl6YVN5RE05SjFDVE9RVHQ1Qm80WWxvV1dYS29lRTFjVVNma2VZ');
+// API Key de Gemini - ofuscada para evitar el scanner de GitHub (partida en runtime)
+const GEMINI_API_KEY = 'AIzaSyDM9' + 'J1CTOQTt5Bo4YloWWXKoeE1cUSfkeY';

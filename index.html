@@ -108,7 +108,7 @@
                 <input type="text" id="Apellidos" placeholder="Ej: González Pérez" required>
 
                 <label><i class="fas fa-id-card"></i> Cédula:</label>
-                <input type="text" id="Cedula" placeholder="Ej: V-5.256.123" pattern="^V-\d{1,3}(?:\.\d{3})*$">
+                <input type="text" id="Cedula" placeholder="Ej: 6.955.138" inputmode="numeric">
 
                 <label><i class="fas fa-birthday-cake"></i> Fecha de nacimiento:</label>
                 <input type="date" id="FechaNacimiento">
@@ -159,11 +159,13 @@
                 <!-- Sección de educación -->
                 <div class="section-title"><i class="fas fa-graduation-cap"></i> Educación</div>
                 
-                <label><i class="fas fa-school"></i> Primaria:</label>
+                <label><i class="fas fa-school"></i> Primaria: <span class="add-btn" onclick="agregarCampo('EducacionPrimaria')" style="font-size:13px">(+)</span></label>
                 <input type="text" id="EducacionPrimaria" placeholder="U.E. Cristobal Colón">
+                <div id="EducacionPrimariaCampos"></div>
 
-                <label><i class="fas fa-school"></i> Secundaria:</label>
+                <label><i class="fas fa-school"></i> Secundaria: <span class="add-btn" onclick="agregarCampo('EducacionSecundaria')" style="font-size:13px">(+)</span></label>
                 <input type="text" id="EducacionSecundaria" placeholder="L.B. Simon Rodríguez">
+                <div id="EducacionSecundariaCampos"></div>
 
                 <label><i class="fas fa-university"></i> Superior: <span class="add-btn" onclick="agregarCampo('EducacionSuperior')">(+)</span></label>
                 <input type="text" id="EducacionSuperior" placeholder="Universidad o Instituto">
