@@ -82,6 +82,19 @@
                     <div class="font-option" data-font="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto</div>
                     <div class="font-option" data-font="'Source Sans Pro', sans-serif" style="font-family: 'Source Sans Pro', sans-serif">Source Sans Pro</div>
                 </div>
+                
+                <div style="margin-top:8px;border-top:1px solid #ddd;padding-top:8px">
+                    <button type="button" id="toggleAvanzado" style="background:none;border:none;cursor:pointer;color:#3498db;font-size:13px;padding:4px 0;width:100%;text-align:left">
+                        <i class="fas fa-cog"></i> Ajustes avanzados <span id="avanzadoArrow">▸</span>
+                    </button>
+                    <div id="avanzadoOpciones" style="display:none;margin-top:8px">
+                        <label>Tamaño de letra: <span id="fontSizeLabel">90%</span></label>
+                        <input type="range" id="fontSizeSlider" min="80" max="100" value="90" step="5" style="width:100%">
+                        
+                        <label>Espaciado entre secciones: <span id="spacingLabel">60%</span></label>
+                        <input type="range" id="spacingSlider" min="15" max="100" value="60" step="5" style="width:100%">
+                    </div>
+                </div>
             </div>
             
             <!-- Formulario -->
@@ -228,6 +241,7 @@
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="config.js"></script>
+    <script src="config.local.js"></script>
     <script src="script.js"></script>
     <script>
         // Inicializar Firebase

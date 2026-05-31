@@ -1101,7 +1101,7 @@ button.danger {
 .carga-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: #fff;
     z-index: 3000;
     display: flex;
     align-items: center;
@@ -1136,11 +1136,11 @@ button.danger {
 }
 
 .spinner-bg {
-    stroke: rgba(255, 255, 255, 0.15);
+    stroke: rgba(0, 0, 0, 0.08);
 }
 
 .spinner-fill {
-    stroke: #fff;
+    stroke: #3498db;
     stroke-dasharray: 201;
     stroke-dashoffset: 201;
     stroke-linecap: round;
@@ -1166,7 +1166,7 @@ button.danger {
 
 .carga-icon {
     font-size: 28px;
-    color: #fff;
+    color: #3498db;
     z-index: 1;
     transition: all 0.3s ease;
 }
@@ -1176,7 +1176,7 @@ button.danger {
 }
 
 .carga-texto {
-    color: rgba(255, 255, 255, 0.85);
+    color: #333;
     font-size: 18px;
     font-weight: 500;
     margin: 0;

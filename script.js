@@ -10,6 +10,8 @@ let fotoBase64 = null;
 let cvActualDocId = null;
 let fotoPosicion = 'right';
 let fotoForma = 'cuadrado';
+let escalaFuente = 0.9;
+let espaciadoSecciones = 0.6;
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 let suggestionsMap = {};
 
@@ -45,12 +47,7 @@ function normalizarTexto(txt) {
 }
 
 const FIELD_SUGGESTIONS_MAP = {
-    'Nombres': 'Nombres',
-    'Apellidos': 'Apellidos',
-    'Cedula': 'Cedula',
     'Direccion': 'Direccion',
-    'Email': 'Email',
-    'Telefono': 'Telefono',
     'EducacionPrimaria': 'EducacionPrimaria',
     'EducacionSecundaria': 'EducacionSecundaria',
     'EducacionSuperior': 'EducacionSuperior',
@@ -69,13 +66,9 @@ async function buildSuggestions() {
 
         snapshot.forEach(doc => {
             const cv = doc.data();
-            if (cv.nombres) suggestionsMap.Nombres.push(cv.nombres);
-            if (cv.apellidos) suggestionsMap.Apellidos.push(cv.apellidos);
             if (cv.campos) {
                 Object.keys(FIELD_SUGGESTIONS_MAP).forEach(k => {
-                    if (k === 'Nombres' || k === 'Apellidos') return;
-                    if (k === 'EducacionSuperior') return;
-                    if (k === 'Experiencia' || k === 'Habilidades' || k === 'Cursos') return;
+                    if (k === 'EducacionSuperior' || k === 'Experiencia' || k === 'Habilidades' || k === 'Cursos') return;
                     if (cv.campos[k]) suggestionsMap[k].push(cv.campos[k]);
                 });
                 ['EducacionSuperiorCampos', 'EducacionPrimariaCampos', 'EducacionSecundariaCampos', 'Experiencia', 'Habilidades', 'Cursos'].forEach(arrKey => {
@@ -118,7 +111,7 @@ function actualizarDatalist(dl, values) {
 }
 
 function configurarCorreccion(input, fieldKey) {
-    if (fieldKey === 'Nombres' || fieldKey === 'Apellidos') return;
+    if (fieldKey === 'Nombres' || fieldKey === 'Apellidos' || fieldKey === 'Cedula' || fieldKey === 'Email' || fieldKey === 'Telefono') return;
     input.addEventListener('keydown', function() { this.dataset.userModified = 'true'; });
     input.addEventListener('blur', function() {
         let val = this.value.trim();
@@ -162,17 +155,7 @@ function setupAutocomplete() {
 }
 
 function actualizarSugerenciasLocales(datos) {
-    if (datos.nombres && !suggestionsMap.Nombres.includes(datos.nombres)) {
-        suggestionsMap.Nombres.push(datos.nombres);
-        const dl = document.getElementById('dl-Nombres');
-        if (dl) actualizarDatalist(dl, suggestionsMap.Nombres);
-    }
-    if (datos.apellidos && !suggestionsMap.Apellidos.includes(datos.apellidos)) {
-        suggestionsMap.Apellidos.push(datos.apellidos);
-        const dl = document.getElementById('dl-Apellidos');
-        if (dl) actualizarDatalist(dl, suggestionsMap.Apellidos);
-    }
-    const textFields = ['Cedula', 'Direccion', 'Email', 'Telefono', 'EducacionPrimaria', 'EducacionSecundaria'];
+    const textFields = ['Direccion', 'EducacionPrimaria', 'EducacionSecundaria'];
     textFields.forEach(k => {
         const v = datos.campos?.[k];
         if (v && v.trim() && !suggestionsMap[k]?.includes(v.trim())) {
@@ -245,6 +228,24 @@ document.addEventListener('DOMContentLoaded', function() {
     configurarPersonalizacion();
     actualizarVistaPrevia();
     animarTitulo(); // Iniciar animación del título
+    
+    document.getElementById('toggleAvanzado').addEventListener('click', function() {
+        const panel = document.getElementById('avanzadoOpciones');
+        const arrow = document.getElementById('avanzadoArrow');
+        const isOpen = panel.style.display !== 'none';
+        panel.style.display = isOpen ? 'none' : 'block';
+        arrow.textContent = isOpen ? '▸' : '▾';
+    });
+    document.getElementById('fontSizeSlider').addEventListener('input', function() {
+        escalaFuente = this.value / 100;
+        document.getElementById('fontSizeLabel').textContent = this.value + '%';
+        actualizarVistaPrevia();
+    });
+    document.getElementById('spacingSlider').addEventListener('input', function() {
+        espaciadoSecciones = this.value / 100;
+        document.getElementById('spacingLabel').textContent = this.value + '%';
+        actualizarVistaPrevia();
+    });
 
     // Restaurar estado del Filtro Mágico si ya fue descargado antes
     if (localStorage.getItem('ia_descargada') === '1') {
@@ -535,13 +536,8 @@ async function generarCurriculum() {
         return;
     }
     
-    await guardarDatos(false);
-    mostrarPantallaCarga();
-}
-
-async function mostrarPantallaCarga() {
     const overlay = document.createElement('div');
-    overlay.className = 'carga-overlay';
+    overlay.className = 'carga-overlay show';
     overlay.innerHTML = `
         <div class="carga-card">
             <div class="carga-spinner">
@@ -551,12 +547,12 @@ async function mostrarPantallaCarga() {
                 </svg>
                 <span class="carga-icon"><i class="fas fa-file-alt"></i></span>
             </div>
-            <p class="carga-texto" id="cargaTexto">Preparando CV...</p>
+            <p class="carga-texto" id="cargaTexto">Generando...</p>
         </div>
     `;
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.classList.add('show'), 10);
 
+    await guardarDatos(false);
     await descargarPDF();
 
     const texto = document.getElementById('cargaTexto');
@@ -593,6 +589,13 @@ function mostrarToast(mensaje) {
 function reiniciarTodo() {
     // Limpiar formulario
     limpiarFormulario();
+
+    escalaFuente = 0.9;
+    espaciadoSecciones = 0.6;
+    const fsS = document.getElementById('fontSizeSlider');
+    if (fsS) { fsS.value = 90; document.getElementById('fontSizeLabel').textContent = '90%'; }
+    const spS = document.getElementById('spacingSlider');
+    if (spS) { spS.value = 60; document.getElementById('spacingLabel').textContent = '60%'; }
 
     // Restablecer color principal
     colorPrincipal = '#3498db';
@@ -645,7 +648,7 @@ async function descargarPDF() {
     document.body.appendChild(element);
 
     const opt = {
-        margin: [15, 15],
+        margin: [8, 8],
         filename: `${nombres}_${apellidos}_CV.pdf`,
         image: { type: 'jpeg', quality: 1 },
         html2canvas: {
@@ -658,7 +661,7 @@ async function descargarPDF() {
         },
         jsPDF: {
             unit: 'mm',
-            format: 'a4',
+            format: 'letter',
             orientation: 'portrait'
         }
     };
@@ -686,19 +689,21 @@ function convertirImagenABase64(url) {
 }
 
 function generarHTMLCV(formato = document.getElementById('PreviewFormatoCV').value) {
+    let html;
     switch(formato) {
-        case 'clasico':
-            return generarFormatoClasico();
-        case 'moderno':
-            return generarFormatoModerno();
-        case 'profesional':
-            return generarFormatoProfesional();
-        case 'minimalista':
-            return generarFormatoMinimalista();
-        case 'creativo':
-        default:
-            return generarFormatoCreativo();
+        case 'clasico': html = generarFormatoClasico(); break;
+        case 'moderno': html = generarFormatoModerno(); break;
+        case 'profesional': html = generarFormatoProfesional(); break;
+        case 'minimalista': html = generarFormatoMinimalista(); break;
+        default: html = generarFormatoCreativo(); break;
     }
+    if (escalaFuente !== 1.0) {
+        html = html.replace(/font-size:\s*(\d+)px/g, (m, px) => 'font-size:' + Math.round(parseInt(px) * escalaFuente) + 'px');
+    }
+    if (espaciadoSecciones !== 1.0) {
+        html = html.replace(/(margin-bottom|padding-bottom):\s*(\d+)px/g, (m, prop, val) => prop + ':' + Math.round(parseInt(val) * espaciadoSecciones) + 'px');
+    }
+    return html;
 }
 
 function generarFotoPerfilHTML(tamano = 100) {
@@ -1406,14 +1411,20 @@ function obtenerDatosBasicos() {
 function obtenerEstudios() {
     let html = '';
     const estudios = [
-        { id: 'EducacionPrimaria', nombre: 'Educación Primaria', icono: 'school' },
-        { id: 'EducacionSecundaria', nombre: 'Educación Secundaria', icono: 'graduation-cap' }
+        { id: 'EducacionPrimaria', nombre: 'Educación Primaria', icono: 'school', contenedor: 'EducacionPrimariaCampos' },
+        { id: 'EducacionSecundaria', nombre: 'Educación Secundaria', icono: 'graduation-cap', contenedor: 'EducacionSecundariaCampos' }
     ];
 
     estudios.forEach(estudio => {
         const valor = document.getElementById(estudio.id).value;
         if (valor) {
             html += `<div class="education-item"><i class="fas fa-${estudio.icono}"></i> <strong>${estudio.nombre}:</strong> ${valor}</div>`;
+        }
+        const inputsExtra = document.getElementById(estudio.contenedor).getElementsByTagName('input');
+        for (let i = 0; i < inputsExtra.length; i++) {
+            if (inputsExtra[i].value) {
+                html += `<div class="education-item"><i class="fas fa-${estudio.icono}"></i> ${inputsExtra[i].value}</div>`;
+            }
         }
     });
 
@@ -1678,14 +1689,14 @@ async function cargarCV(id) {
         
         for (const id in cv.campos) {
             const elemento = document.getElementById(id);
-            if (elemento) {
+            if (elemento && elemento.type !== 'file' && typeof cv.campos[id] !== 'object') {
                 elemento.value = cv.campos[id] || '';
             }
         }
         
     ['EducacionSuperiorCampos', 'EducacionPrimariaCampos', 'EducacionSecundariaCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
             const div = document.getElementById(id);
-            if (div && cv.campos[id]) {
+            if (div && Array.isArray(cv.campos[id])) {
                 div.innerHTML = '';
                 cv.campos[id].forEach(valor => {
                     if (valor) {
@@ -1700,7 +1711,7 @@ async function cargarCV(id) {
                         removeBtn.onclick = function() {
                             div.removeChild(input);
                             div.removeChild(removeBtn);
-                            div.removeChild(div.lastElementChild); // Remover <br>
+                            div.removeChild(div.lastElementChild);
                             actualizarVistaPrevia();
                         };
                         
@@ -1779,7 +1790,11 @@ async function cargarCV(id) {
             }
         });
         
+        const estadoCivilGuardado = cv.campos?.['EstadoCivil'];
         actualizarDatos();
+        if (estadoCivilGuardado) {
+            document.getElementById('EstadoCivil').value = estadoCivilGuardado;
+        }
         actualizarEstilos();
         actualizarVistaPrevia();
         
@@ -2074,6 +2089,7 @@ async function aplicarMejoraMagica() {
 }
 
 function obtenerGeminiKey() {
+    if (typeof GEMINI_API_KEY_LOCAL !== 'undefined' && GEMINI_API_KEY_LOCAL) return GEMINI_API_KEY_LOCAL;
     return localStorage.getItem('gemini_api_key') || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '');
 }
 
@@ -2091,6 +2107,8 @@ async function extraerDatosConIA() {
         alert('Por favor ingresa tu API Key de Gemini en el campo correspondiente');
         return;
     }
+
+    limpiarFormulario();
 
     const btn = document.querySelector('button[onclick="extraerDatosConIA()"]');
     const originalText = btn.innerHTML;
