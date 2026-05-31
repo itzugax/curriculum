@@ -12,6 +12,7 @@ let fotoPosicion = 'right';
 let fotoForma = 'cuadrado';
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 const GEMINI_API_KEY = 'AIzaSyDM9J1CTOQTt5Bo4YloWWXKoeE1cUSfkeY';
+let suggestionsMap = {};
 
 // Animación de máquina de escribir para el título
 // Animación de máquina de escribir para el título
@@ -39,6 +40,169 @@ function animarTitulo() {
     
     escribir();
 }
+// ─── Sugerencias y Autocompletado ────────────────────────────────
+function levenshtein(a, b) {
+    const m = [];
+    for (let i = 0; i <= b.length; i++) m[i] = [i];
+    for (let j = 0; j <= a.length; j++) m[0][j] = j;
+    for (let i = 1; i <= b.length; i++)
+        for (let j = 1; j <= a.length; j++)
+            m[i][j] = b[i - 1] === a[j - 1] ? m[i - 1][j - 1]
+                : Math.min(m[i - 1][j - 1] + 1, m[i][j - 1] + 1, m[i - 1][j] + 1);
+    return m[b.length][a.length];
+}
+function similitud(a, b) {
+    const maxLen = Math.max(a.length, b.length);
+    return maxLen === 0 ? 1 : 1 - levenshtein(a, b) / maxLen;
+}
+
+const FIELD_SUGGESTIONS_MAP = {
+    'Nombres': 'Nombres',
+    'Apellidos': 'Apellidos',
+    'Cedula': 'Cedula',
+    'Direccion': 'Direccion',
+    'Email': 'Email',
+    'Telefono': 'Telefono',
+    'EducacionPrimaria': 'EducacionPrimaria',
+    'EducacionSecundaria': 'EducacionSecundaria',
+    'EducacionSuperior': 'EducacionSuperior',
+    'Experiencia': 'Experiencia',
+    'Habilidades': 'Habilidades',
+    'Cursos': 'Cursos'
+};
+
+async function buildSuggestions() {
+    try {
+        const db = firebase.firestore();
+        const snapshot = await db.collection('curriculums').get();
+
+        suggestionsMap = {};
+        Object.keys(FIELD_SUGGESTIONS_MAP).forEach(k => suggestionsMap[k] = []);
+
+        snapshot.forEach(doc => {
+            const cv = doc.data();
+            if (cv.nombres) suggestionsMap.Nombres.push(cv.nombres);
+            if (cv.apellidos) suggestionsMap.Apellidos.push(cv.apellidos);
+            if (cv.campos) {
+                Object.keys(FIELD_SUGGESTIONS_MAP).forEach(k => {
+                    if (k === 'Nombres' || k === 'Apellidos') return;
+                    if (k === 'EducacionSuperior') return;
+                    if (k === 'Experiencia' || k === 'Habilidades' || k === 'Cursos') return;
+                    if (cv.campos[k]) suggestionsMap[k].push(cv.campos[k]);
+                });
+                ['EducacionSuperiorCampos', 'Experiencia', 'Habilidades', 'Cursos'].forEach(arrKey => {
+                    const mapKey = arrKey === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : arrKey;
+                    if (cv.campos[arrKey] && Array.isArray(cv.campos[arrKey])) {
+                        cv.campos[arrKey].forEach(v => { if (v && v.trim()) suggestionsMap[mapKey].push(v.trim()); });
+                    }
+                });
+            }
+        });
+
+        Object.keys(suggestionsMap).forEach(k => {
+            suggestionsMap[k] = [...new Set(suggestionsMap[k])].filter(Boolean);
+        });
+        setupAutocomplete();
+    } catch (e) {
+        console.warn('No se pudieron cargar sugerencias:', e);
+    }
+}
+
+function crearDatalist(input, fieldKey) {
+    const listId = 'dl-' + fieldKey;
+    let dl = document.getElementById(listId);
+    if (!dl) {
+        dl = document.createElement('datalist');
+        dl.id = listId;
+        document.body.appendChild(dl);
+    }
+    input.setAttribute('list', listId);
+    actualizarDatalist(dl, suggestionsMap[fieldKey] || []);
+}
+
+function actualizarDatalist(dl, values) {
+    dl.innerHTML = '';
+    values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        dl.appendChild(opt);
+    });
+}
+
+function configurarCorreccion(input, fieldKey) {
+    if (fieldKey === 'Nombres' || fieldKey === 'Apellidos') return;
+    input.addEventListener('keydown', function() { this.dataset.userModified = 'true'; });
+    input.addEventListener('blur', function() {
+        if (this.dataset.userModified === 'true') return;
+        const val = this.value.trim();
+        if (!val || val.length < 3) return;
+        const suggestions = suggestionsMap[fieldKey] || [];
+        if (!suggestions.length) return;
+        let best = null, bestScore = 0;
+        const vLow = val.toLowerCase();
+        for (const s of suggestions) {
+            const score = similitud(vLow, s.toLowerCase());
+            if (score > bestScore) { bestScore = score; best = s; }
+        }
+        if (best && bestScore > 0.8 && best.toLowerCase() !== vLow) {
+            this.value = best;
+            this.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+}
+
+function configurarAutocompletadoInput(input, fieldKey) {
+    if (!input || input.hasAttribute('list')) return;
+    crearDatalist(input, fieldKey);
+    configurarCorreccion(input, fieldKey);
+}
+
+function setupAutocomplete() {
+    Object.keys(FIELD_SUGGESTIONS_MAP).forEach(fieldKey => {
+        const input = document.getElementById(fieldKey);
+        if (input && input.tagName === 'INPUT') configurarAutocompletadoInput(input, fieldKey);
+    });
+    document.querySelectorAll('#EducacionSuperiorCampos input, #Experiencia input, #Habilidades input, #Cursos input').forEach(inp => {
+        const container = inp.closest('[id]');
+        if (!container) return;
+        const mapKey = container.id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : container.id;
+        configurarAutocompletadoInput(inp, mapKey);
+    });
+}
+
+function actualizarSugerenciasLocales(datos) {
+    if (datos.nombres && !suggestionsMap.Nombres.includes(datos.nombres)) {
+        suggestionsMap.Nombres.push(datos.nombres);
+        const dl = document.getElementById('dl-Nombres');
+        if (dl) actualizarDatalist(dl, suggestionsMap.Nombres);
+    }
+    if (datos.apellidos && !suggestionsMap.Apellidos.includes(datos.apellidos)) {
+        suggestionsMap.Apellidos.push(datos.apellidos);
+        const dl = document.getElementById('dl-Apellidos');
+        if (dl) actualizarDatalist(dl, suggestionsMap.Apellidos);
+    }
+    const textFields = ['Cedula', 'Direccion', 'Email', 'Telefono', 'EducacionPrimaria', 'EducacionSecundaria'];
+    textFields.forEach(k => {
+        const v = datos.campos?.[k];
+        if (v && v.trim() && !suggestionsMap[k]?.includes(v.trim())) {
+            suggestionsMap[k].push(v.trim());
+            const dl = document.getElementById('dl-' + k);
+            if (dl) actualizarDatalist(dl, suggestionsMap[k]);
+        }
+    });
+    [['EducacionSuperiorCampos', 'EducacionSuperior'], ['Experiencia', 'Experiencia'], ['Habilidades', 'Habilidades'], ['Cursos', 'Cursos']].forEach(([arrKey, mapKey]) => {
+        if (datos.campos?.[arrKey] && Array.isArray(datos.campos[arrKey])) {
+            datos.campos[arrKey].forEach(v => {
+                if (v && v.trim() && !suggestionsMap[mapKey]?.includes(v.trim())) {
+                    suggestionsMap[mapKey].push(v.trim());
+                    const dl = document.getElementById('dl-' + mapKey);
+                    if (dl) actualizarDatalist(dl, suggestionsMap[mapKey]);
+                }
+            });
+        }
+    });
+}
+
 // ─── Autoguardado ─────────────────────────────────────────────────
 function debounce(fn, delay) {
     let timer;
@@ -86,6 +250,7 @@ const autoGuardarDebounced = debounce(autoGuardar, 2000);
 document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
     cargarCVsGuardados();
+    buildSuggestions();
     configurarPersonalizacion();
     actualizarVistaPrevia();
     animarTitulo(); // Iniciar animación del título
@@ -323,6 +488,8 @@ function agregarCampo(id) {
     };
 
     input.addEventListener('input', actualizarVistaPrevia);
+    const mapKey = id === "EducacionSuperior" ? "EducacionSuperior" : id;
+    configurarAutocompletadoInput(input, mapKey);
 
     div.appendChild(input);
     div.appendChild(removeBtn);
@@ -1376,6 +1543,7 @@ async function guardarDatos(mostrarAlerta = true) {
         return false;
     }
     
+    actualizarSugerenciasLocales(datos);
     cargarCVsGuardados();
     return true;
 }
@@ -1529,6 +1697,8 @@ async function cargarCV(id) {
                         };
                         
                         input.addEventListener('input', actualizarVistaPrevia);
+                        const mapKey = id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : id;
+                        configurarAutocompletadoInput(input, mapKey);
                         
                         div.appendChild(input);
                         div.appendChild(removeBtn);
@@ -1896,21 +2066,9 @@ async function aplicarMejoraMagica() {
 }
 
 async function extraerDatosConIA() {
-<<<<<<< HEAD
     const fileInput = document.getElementById('cvImageInput');
     const file = fileInput.files[0];
 
-=======
-    const apiKey = document.getElementById('geminiApiKey').value.trim();
-    const fileInput = document.getElementById('cvImageInput');
-    const file = fileInput.files[0];
-
-    if (!apiKey) {
-        alert('Por favor ingresa tu API Key de Gemini');
-        return;
-    }
-
->>>>>>> 014ecb53311d4212dd8668b582f1d39761d122c1
     if (!file) {
         alert('Por favor selecciona una foto del CV');
         return;
@@ -1949,34 +2107,22 @@ async function extraerDatosConIA() {
 }
 Los arrays deben contener strings individuales. Para FechaNacimiento usa formato YYYY-MM-DD. Para Sexo usa exactamente "Femenino", "Masculino" u "Otro". Si un campo no está presente, déjalo como string vacío o array vacío según corresponda.`;
 
-<<<<<<< HEAD
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-=======
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
->>>>>>> 014ecb53311d4212dd8668b582f1d39761d122c1
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
                     parts: [
                         { text: prompt },
-<<<<<<< HEAD
                         { inline_data: { mime_type: file.type || 'image/jpeg', data: imageData } }
-=======
-                        { inlineData: { mimeType: file.type || 'image/jpeg', data: imageData } }
->>>>>>> 014ecb53311d4212dd8668b582f1d39761d122c1
                     ]
                 }]
             })
         });
-<<<<<<< HEAD
         if (!resp.ok) {
             const errText = await resp.text();
             throw new Error('Error Gemini: ' + errText);
         }
-=======
-        if (!resp.ok) throw new Error('Error en la API de Gemini: ' + (await resp.text()));
->>>>>>> 014ecb53311d4212dd8668b582f1d39761d122c1
         const json = await resp.json();
         const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
@@ -2014,6 +2160,7 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
                     input.type = 'text';
                     input.value = item;
                     input.style.marginTop = '5px';
+                    configurarAutocompletadoInput(input, 'EducacionSuperior');
                     const removeBtn = document.createElement('span');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '(-)';
@@ -2046,6 +2193,7 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
                         input.type = 'text';
                         input.value = item;
                         input.style.marginTop = '5px';
+                        configurarAutocompletadoInput(input, id);
                         const removeBtn = document.createElement('span');
                         removeBtn.className = 'remove-btn';
                         removeBtn.innerHTML = '(-)';
