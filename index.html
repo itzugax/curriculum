@@ -86,6 +86,18 @@
             
             <!-- Formulario -->
             <form id="cvForm">
+                <!-- Sección de extracción por IA -->
+                <div class="section-title"><i class="fas fa-robot"></i> Subir foto de CV para extraer datos</div>
+
+                <label><i class="fas fa-image"></i> Foto del CV:</label>
+                <input type="file" id="cvImageInput" accept="image/*">
+
+                <button type="button" class="primary" onclick="extraerDatosConIA()" style="margin-top: 10px; width: 100%;">
+                    <i class="fas fa-magic"></i> Extraer datos con IA
+                </button>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+
                 <!-- Sección de datos personales -->
                 <div class="section-title"><i class="fas fa-user"></i> Datos Personales</div>
                 

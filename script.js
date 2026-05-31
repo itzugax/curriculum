@@ -11,6 +11,7 @@ let cvActualDocId = null;
 let fotoPosicion = 'right';
 let fotoForma = 'cuadrado';
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
+const GEMINI_API_KEY = 'AIzaSyDM9J1CTOQTt5Bo4YloWWXKoeE1cUSfkeY';
 
 // Animación de máquina de escribir para el título
 // Animación de máquina de escribir para el título
@@ -1891,5 +1892,163 @@ async function aplicarMejoraMagica() {
         console.error('Error en Filtro Mágico:', err);
         alert(`✨ Filtro Mágico: ${err.message}`);
         loadingOverlay.style.display = 'none';
+    }
+}
+
+async function extraerDatosConIA() {
+    const fileInput = document.getElementById('cvImageInput');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('Por favor selecciona una foto del CV');
+        return;
+    }
+
+    const btn = document.querySelector('button[onclick="extraerDatosConIA()"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extrayendo datos...';
+
+    try {
+        const reader = new FileReader();
+        const imageData = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        const prompt = `Extrae toda la información de este currículum y devuélvela como un objeto JSON válido (sin markdown, sin bloques de código, solo el JSON puro). El JSON debe seguir esta estructura exacta:
+{
+  "Nombres": "",
+  "Apellidos": "",
+  "Cedula": "",
+  "FechaNacimiento": "",
+  "Direccion": "",
+  "Sexo": "",
+  "EstadoCivil": "",
+  "Email": "",
+  "Telefono": "",
+  "EducacionPrimaria": "",
+  "EducacionSecundaria": "",
+  "EducacionSuperior": [],
+  "Experiencia": [],
+  "Habilidades": [],
+  "Cursos": []
+}
+Los arrays deben contener strings individuales. Para FechaNacimiento usa formato YYYY-MM-DD. Para Sexo usa exactamente "Femenino", "Masculino" u "Otro". Si un campo no está presente, déjalo como string vacío o array vacío según corresponda.`;
+
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: file.type || 'image/jpeg', data: imageData } }
+                    ]
+                }]
+            })
+        });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error('Error Gemini: ' + errText);
+        }
+        const json = await resp.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        let jsonStr = text.trim();
+        if (jsonStr.startsWith('```')) {
+            jsonStr = jsonStr.replace(/```(?:json)?\s*/g, '').trim();
+        }
+
+        const data = JSON.parse(jsonStr);
+
+        const simpleFields = ['Nombres', 'Apellidos', 'Cedula', 'FechaNacimiento', 'Direccion', 'Sexo', 'EstadoCivil', 'Email', 'Telefono', 'EducacionPrimaria', 'EducacionSecundaria'];
+        simpleFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && data[id] && data[id].toString().trim()) {
+                el.value = data[id].toString().trim();
+            }
+        });
+
+        if (data.Sexo) {
+            actualizarDatos();
+            if (data.EstadoCivil) {
+                document.getElementById('EstadoCivil').value = data.EstadoCivil.trim();
+            }
+        }
+
+        const mainInput = document.getElementById('EducacionSuperior');
+        const camposContainer = document.getElementById('EducacionSuperiorCampos');
+        camposContainer.innerHTML = '';
+        if (data.EducacionSuperior && Array.isArray(data.EducacionSuperior)) {
+            data.EducacionSuperior.forEach((item, index) => {
+                if (index === 0 && mainInput) {
+                    mainInput.value = item;
+                } else if (item.trim()) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = item;
+                    input.style.marginTop = '5px';
+                    const removeBtn = document.createElement('span');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '(-)';
+                    removeBtn.onclick = function() {
+                        camposContainer.removeChild(input);
+                        camposContainer.removeChild(removeBtn);
+                        if (camposContainer.lastElementChild) camposContainer.removeChild(camposContainer.lastElementChild);
+                        actualizarVistaPrevia();
+                    };
+                    camposContainer.appendChild(input);
+                    camposContainer.appendChild(removeBtn);
+                    camposContainer.appendChild(document.createElement('br'));
+                }
+            });
+        }
+
+        const dynamicFields = [
+            { id: 'Experiencia', dataKey: 'Experiencia' },
+            { id: 'Habilidades', dataKey: 'Habilidades' },
+            { id: 'Cursos', dataKey: 'Cursos' }
+        ];
+
+        dynamicFields.forEach(({ id, dataKey }) => {
+            const container = document.getElementById(id);
+            container.innerHTML = '';
+            if (data[dataKey] && Array.isArray(data[dataKey])) {
+                data[dataKey].forEach(item => {
+                    if (item.trim()) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = item;
+                        input.style.marginTop = '5px';
+                        const removeBtn = document.createElement('span');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.innerHTML = '(-)';
+                        removeBtn.onclick = function() {
+                            container.removeChild(input);
+                            container.removeChild(removeBtn);
+                            if (container.lastElementChild) container.removeChild(container.lastElementChild);
+                            actualizarVistaPrevia();
+                        };
+                        container.appendChild(input);
+                        container.appendChild(removeBtn);
+                        container.appendChild(document.createElement('br'));
+                    }
+                });
+            }
+        });
+        actualizarVistaPrevia();
+
+        await guardarDatos(false);
+
+        mostrarToast('¡Datos extraídos correctamente!');
+
+    } catch (error) {
+        console.error('Error al extraer datos con IA:', error);
+        alert('Error al extraer datos: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
