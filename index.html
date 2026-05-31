@@ -92,15 +92,9 @@
                 <label><i class="fas fa-image"></i> Foto del CV:</label>
                 <input type="file" id="cvImageInput" accept="image/*">
 
-                <label><i class="fas fa-key"></i> API Key de Gemini:</label>
-                <input type="text" id="geminiApiKey" placeholder="Tu API Key de Gemini (se guarda localmente)">
-
                 <button type="button" class="primary" onclick="extraerDatosConIA()" style="margin-top: 10px; width: 100%;">
                     <i class="fas fa-magic"></i> Extraer datos con IA
                 </button>
-                <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
-                    Obtén tu API Key gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>
-                </small>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
 
@@ -231,6 +225,7 @@
     <!-- Librerías JS -->
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="config.js"></script>
     <script src="script.js"></script>
     <script>
         // Inicializar Firebase

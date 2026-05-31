@@ -313,16 +313,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Cargar API Key guardada y persistir cambios
-    const apiInput = document.getElementById('geminiApiKey');
-    if (apiInput) {
-        const saved = localStorage.getItem('gemini_api_key');
-        if (saved) apiInput.value = saved;
-        apiInput.addEventListener('input', function() {
-            if (this.value.trim()) localStorage.setItem('gemini_api_key', this.value.trim());
-        });
-    }
-
     // Escuchar cambios en el formulario para vista previa en tiempo real
     document.getElementById('cvForm').addEventListener('input', function() {
         actualizarVistaPrevia();
@@ -2075,8 +2065,7 @@ async function aplicarMejoraMagica() {
 }
 
 function obtenerGeminiKey() {
-    const input = document.getElementById('geminiApiKey');
-    return input?.value?.trim() || localStorage.getItem('gemini_api_key') || '';
+    return localStorage.getItem('gemini_api_key') || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '');
 }
 
 async function extraerDatosConIA() {
