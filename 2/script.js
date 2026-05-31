@@ -1,15 +1,11 @@
 // Variables globales
+const { jsPDF } = window.jspdf;
 let colorPrincipal = '#3498db';
 let fuenteSeleccionada = "'Poppins', sans-serif";
 let fotoPerfilUrl = null;
 let fotoPerfilLocal = null;
 let fotoPerfilId = null;
 let cropperInstance = null;
-let fotoUploadPromise = null;
-let fotoBase64 = null;
-let cvActualDocId = null;
-let fotoPosicion = 'right';
-let fotoForma = 'cuadrado';
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
 
 // Animación de máquina de escribir para el título
@@ -38,49 +34,6 @@ function animarTitulo() {
     
     escribir();
 }
-// ─── Autoguardado ─────────────────────────────────────────────────
-function debounce(fn, delay) {
-    let timer;
-    return function(...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, args), delay);
-    };
-}
-
-function contarCamposLlenos() {
-    let count = 0;
-    document.querySelectorAll('#cvForm input, #cvForm select').forEach(campo => {
-        if (campo.id && campo.id !== 'FotoPerfil' && campo.value.trim()) count++;
-    });
-    ['EducacionSuperiorCampos', 'Habilidades', 'Experiencia', 'Cursos'].forEach(id => {
-        const inputs = document.getElementById(id).getElementsByTagName('input');
-        for (let i = 0; i < inputs.length; i++) {
-            if (inputs[i].value.trim()) count++;
-        }
-    });
-    return count;
-}
-
-function mostrarAutoguardado(mostrar) {
-    const el = document.getElementById('autoSaveIndicator');
-    if (el) el.style.display = mostrar ? 'flex' : 'none';
-}
-
-async function autoGuardar() {
-    const nombres = document.getElementById("Nombres").value.trim();
-    const apellidos = document.getElementById("Apellidos").value.trim();
-    if (!nombres || !apellidos) {
-        mostrarAutoguardado(false);
-        return;
-    }
-    if (contarCamposLlenos() >= 3) {
-        await guardarDatos(false);
-    }
-    mostrarAutoguardado(false);
-}
-
-const autoGuardarDebounced = debounce(autoGuardar, 2000);
-
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     actualizarDatos();
@@ -117,47 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Configurar posición de la foto
-    document.querySelectorAll('.pos-option').forEach(opt => {
-        opt.addEventListener('click', function() {
-            document.querySelectorAll('.pos-option').forEach(el => el.classList.remove('selected'));
-            this.classList.add('selected');
-            fotoPosicion = this.getAttribute('data-pos');
-            actualizarVistaPrevia();
-        });
-    });
-
-    // Configurar forma de la foto
-    document.querySelectorAll('.shape-option').forEach(opt => {
-        opt.addEventListener('click', function() {
-            document.querySelectorAll('.shape-option').forEach(el => el.classList.remove('selected'));
-            this.classList.add('selected');
-            fotoForma = this.getAttribute('data-shape');
-            document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
-            actualizarVistaPrevia();
-        });
-    });
-
-    // Configurar slider de zoom en el modal de recorte
-    const zoomSlider = document.getElementById('zoomSlider');
-    if (zoomSlider) {
-        zoomSlider.addEventListener('input', function() {
-            if (cropperInstance) {
-                cropperInstance.zoomTo(parseFloat(this.value));
-            }
-        });
-    }
-
     // Escuchar cambios en el formulario para vista previa en tiempo real
-    document.getElementById('cvForm').addEventListener('input', function() {
-        actualizarVistaPrevia();
-        const nombres = document.getElementById("Nombres").value.trim();
-        const apellidos = document.getElementById("Apellidos").value.trim();
-        if (nombres && apellidos && contarCamposLlenos() >= 3) {
-            mostrarAutoguardado(true);
-        }
-        autoGuardarDebounced();
-    });
+    document.getElementById('cvForm').addEventListener('input', actualizarVistaPrevia);
 });
 
 // Subir foto en segundo plano
@@ -177,8 +91,6 @@ async function subirFotoABackground(file) {
         }
     } catch (error) {
         console.error("Error al subir la foto:", error);
-    } finally {
-        fotoUploadPromise = null;
     }
 }
 
@@ -339,18 +251,10 @@ function limpiarFormulario() {
     fotoPerfilUrl = null;
     fotoPerfilLocal = null;
     fotoPerfilId = null;
-    fotoBase64 = null;
-    fotoUploadPromise = null;
-    cvActualDocId = null;
-    fotoPosicion = 'right';
-    fotoForma = 'cuadrado';
-    document.querySelectorAll('.pos-option').forEach(el => el.classList.toggle('selected', el.getAttribute('data-pos') === fotoPosicion));
-    document.querySelectorAll('.shape-option').forEach(el => el.classList.toggle('selected', el.getAttribute('data-shape') === fotoForma));
-    document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
     actualizarVistaPrevia();
 }
 
-async function generarCurriculum() {
+function generarCurriculum() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
     
@@ -359,58 +263,46 @@ async function generarCurriculum() {
         return;
     }
     
-    await guardarDatos(false);
-    mostrarPantallaCarga();
+    guardarDatos(false);
+    efectoSacudidaYDescarga(); // Inicia el efecto
 }
 
-async function mostrarPantallaCarga() {
+// Efecto de sacudida y descarga ajustado
+async function efectoSacudidaYDescarga() {
+    const body = document.body;
     const overlay = document.createElement('div');
-    overlay.className = 'carga-overlay';
-    overlay.innerHTML = `
-        <div class="carga-card">
-            <div class="carga-spinner">
-                <svg class="spinner-ring" viewBox="0 0 80 80">
-                    <circle class="spinner-bg" cx="40" cy="40" r="32" fill="none" stroke-width="4"/>
-                    <circle class="spinner-fill" cx="40" cy="40" r="32" fill="none" stroke-width="4"/>
-                </svg>
-                <span class="carga-icon"><i class="fas fa-file-alt"></i></span>
-            </div>
-            <p class="carga-texto" id="cargaTexto">Preparando CV...</p>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    setTimeout(() => overlay.classList.add('show'), 10);
+    overlay.className = 'white-overlay';
+    body.appendChild(overlay);
+    body.classList.add('shake-effect');
 
-    await descargarPDF();
+    // Reproducir sonido
+    const genSound = document.getElementById('genSound');
+    genSound.play().catch(error => console.error("Error al reproducir sonido:", error));
 
-    const texto = document.getElementById('cargaTexto');
-    texto.textContent = '¡CV listo!';
-    texto.className = 'carga-texto carga-exito';
-    overlay.querySelector('.carga-spinner').classList.add('completo');
-
-    await new Promise(r => setTimeout(r, 800));
-    overlay.classList.remove('show');
-    setTimeout(() => document.body.removeChild(overlay), 300);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    mostrarToast('¡CV descargado con éxito!');
-    reiniciarTodo();
-    actualizarVistaPrevia();
-}
-
-function mostrarToast(mensaje) {
-    const existing = document.querySelector('.toast-notification');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    toast.textContent = mensaje;
-    document.body.appendChild(toast);
-
-    setTimeout(() => toast.classList.add('show'), 10);
+    // 3 segundos de sacudida antes del desvanecimiento
     setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 2500);
+        // Comienza el desvanecimiento
+        overlay.style.animation = 'fadeToWhite 0.5s ease forwards';
+
+        // Después de 0.5s (fin del desvanecimiento), congelar y descargar
+        setTimeout(async () => {
+            overlay.classList.add('freeze-white');
+            await descargarPDF(); // Descarga el PDF al inicio del congelamiento
+
+            // 3 segundos de congelamiento, luego subir y limpiar
+            setTimeout(() => {
+                // Subir la página al inicio mientras está en blanco
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Remover efectos y reiniciar
+                body.classList.remove('shake-effect');
+                body.removeChild(overlay);
+                reiniciarTodo(); // Reinicia solo el formulario y opciones
+                actualizarVistaPrevia();
+                alert('¡CV descargado con éxito!');
+            }, 3000); // Congelamiento dura 3 segundos
+        }, 500); // Desvanecimiento dura 0.5 segundos
+    }, 3000); // Sacudida dura 3 segundos (cambiado de 2000 a 3000)
 }
 
 // Nueva función para reiniciar todo
@@ -434,61 +326,70 @@ function reiniciarTodo() {
     actualizarEstilos();
 }
 
+// Ajuste en descargarPDF (eliminamos el appendChild duplicado)
 async function descargarPDF() {
     const nombres = document.getElementById("Nombres").value;
     const apellidos = document.getElementById("Apellidos").value;
-
-    const element = document.createElement('div');
-    let cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
-
-    if (fotoPerfilLocal) {
-        try {
-            const base64Image = await convertirImagenABase64(fotoPerfilLocal);
-            cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
-        } catch (error) {
-            console.error("Error al convertir la imagen local:", error);
-            if (fotoPerfilUrl) {
-                try {
-                    const base64Image = await convertirImagenABase64(fotoPerfilUrl);
-                    cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
-                } catch (error) {
-                    console.error("Error al convertir la imagen de ImgBB:", error);
+    
+    try {
+        const element = document.createElement('div');
+        element.className = 'cv-template';
+        let cvHTML = generarHTMLCV(document.getElementById('PreviewFormatoCV').value);
+        
+        if (fotoPerfilLocal) {
+            try {
+                const base64Image = await convertirImagenABase64(fotoPerfilLocal);
+                cvHTML = cvHTML.replace(fotoPerfilLocal, base64Image);
+            } catch (error) {
+                console.error("Error al convertir la imagen local:", error);
+                if (fotoPerfilUrl) {
+                    try {
+                        const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+                        cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+                    } catch (error) {
+                        console.error("Error al convertir la imagen de ImgBB:", error);
+                    }
                 }
             }
+        } else if (fotoPerfilUrl) {
+            try {
+                const base64Image = await convertirImagenABase64(fotoPerfilUrl);
+                cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
+            } catch (error) {
+                console.error("Error al convertir la imagen:", error);
+            }
         }
-    } else if (fotoPerfilUrl) {
-        try {
-            const base64Image = await convertirImagenABase64(fotoPerfilUrl);
-            cvHTML = cvHTML.replace(fotoPerfilUrl, base64Image);
-        } catch (error) {
-            console.error("Error al convertir la imagen:", error);
-        }
+        
+        element.innerHTML = cvHTML;
+        document.body.appendChild(element);
+
+        const opt = {
+            margin: [15, 15],
+            filename: `${nombres}_${apellidos}_CV.pdf`,
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: { 
+                scale: 2,
+                letterRendering: true,
+                useCORS: true,
+                scrollX: 0,
+                scrollY: 0,
+                allowTaint: true,
+                proxy: 'https://cors-anywhere.herokuapp.com/'
+            },
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait'
+            }
+        };
+
+        await html2pdf().set(opt).from(element).save();
+        document.body.removeChild(element); // Limpiar después de descargar
+        
+    } catch (error) {
+        console.error("Error al generar PDF:", error);
+        alert("Ocurrió un error al generar el PDF. Por favor, inténtalo de nuevo.");
     }
-
-    element.innerHTML = cvHTML;
-    document.body.appendChild(element);
-
-    const opt = {
-        margin: [15, 15],
-        filename: `${nombres}_${apellidos}_CV.pdf`,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: {
-            scale: 2,
-            letterRendering: true,
-            useCORS: true,
-            scrollX: 0,
-            scrollY: 0,
-            allowTaint: true
-        },
-        jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait'
-        }
-    };
-
-    await html2pdf().set(opt).from(element).save();
-    document.body.removeChild(element);
 }
 
 function convertirImagenABase64(url) {
@@ -525,20 +426,20 @@ function generarHTMLCV(formato = document.getElementById('PreviewFormatoCV').val
     }
 }
 
-function generarFotoPerfilHTML(tamano = 100) {
+function generarFotoPerfilHTML() {
     const fotoParaMostrar = fotoPerfilLocal || fotoPerfilUrl;
     if (!fotoParaMostrar) return '';
     
-    const borderRadius = fotoForma === 'circulo' ? '50%' : `${tamano * 0.12}px`;
-    
     return `
-        <div style="width: ${tamano}px; height: ${tamano}px; border-radius: ${borderRadius}; 
-                    border: 3px solid ${colorPrincipal}; 
-                    background-image: url('${fotoParaMostrar}');
-                    background-size: cover;
-                    background-position: center;
-                    background-repeat: no-repeat;
-                    flex-shrink: 0;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="width: 150px; height: 150px; border-radius: 50%; 
+                        border: 4px solid ${colorPrincipal}; 
+                        background-image: url('${fotoParaMostrar}');
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        margin: 0 auto;">
+            </div>
         </div>
     `;
 }
@@ -572,14 +473,14 @@ function generarFormatoProfesional() {
                 }
                 .header {
                     display: flex;
+                    justify-content: space-between;
                     align-items: center;
-                    gap: 24px;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 3px solid ${colorPrincipal};
                 }
                 .name-title {
-                    flex: 1;
+                    flex: 2;
                 }
                 h1 {
                     color: ${colorPrincipal};
@@ -603,7 +504,6 @@ function generarFormatoProfesional() {
                 }
                 .section {
                     margin-bottom: 25px;
-
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -633,18 +533,12 @@ function generarFormatoProfesional() {
                     border-radius: 20px;
                     font-size: 13px;
                 }
-                .experience-item::before {
-                    content: "•";
-                    color: ${colorPrincipal};
-                    font-weight: bold;
-                    margin-right: 8px;
-                }
             </style>
         </head>
         <body>
             <div class="cv-container">
-                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
-                    ${fotoPerfil}
+                ${fotoPerfil}
+                <div class="header">
                     <div class="name-title">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                         <div class="contact-info">
@@ -729,9 +623,7 @@ function generarFormatoMinimalista() {
                     background: white;
                 }
                 .header {
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
+                    text-align: center;
                     margin-bottom: 40px;
                 }
                 h1 {
@@ -743,6 +635,7 @@ function generarFormatoMinimalista() {
                 .contact-info {
                     margin-top: 20px;
                     display: flex;
+                    justify-content: center;
                     flex-wrap: wrap;
                     gap: 20px;
                 }
@@ -757,7 +650,6 @@ function generarFormatoMinimalista() {
                 }
                 .section {
                     margin-bottom: 30px;
-
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -791,15 +683,13 @@ function generarFormatoMinimalista() {
         </head>
         <body>
             <div class="cv-container">
-                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
-                    ${fotoPerfil}
-                    <div>
-                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                        <div class="contact-info">
-                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
-                        </div>
+                ${fotoPerfil}
+                <div class="header">
+                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                    <div class="contact-info">
+                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
                     </div>
                 </div>
                 
@@ -831,9 +721,7 @@ function generarFormatoMinimalista() {
         </body>
         </html>
     `;
-    return resultado;
 }
-
 
 function generarFormatoCreativo() {
     const datosBasicos = obtenerDatosBasicos();
@@ -873,9 +761,7 @@ function generarFormatoCreativo() {
                     background: ${colorPrincipal};
                 }
                 .header {
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
+                    text-align: center;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                 }
@@ -887,6 +773,7 @@ function generarFormatoCreativo() {
                 }
                 .contact-info {
                     display: flex;
+                    justify-content: center;
                     flex-wrap: wrap;
                     gap: 20px;
                     margin-top: 15px;
@@ -901,7 +788,6 @@ function generarFormatoCreativo() {
                     background: #f9f9f9;
                     padding: 15px;
                     border-radius: 8px;
-
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -928,15 +814,13 @@ function generarFormatoCreativo() {
         </head>
         <body>
             <div class="cv-container">
-                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
-                    ${fotoPerfil}
-                    <div>
-                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                        <div class="contact-info">
-                            ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
-                            ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
-                            ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
-                        </div>
+                ${fotoPerfil}
+                <div class="header">
+                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                    <div class="contact-info">
+                        ${document.getElementById('Email').value ? `<div class="contact-item"><i class="fas fa-envelope"></i> ${document.getElementById('Email').value}</div>` : ''}
+                        ${document.getElementById('Telefono').value ? `<div class="contact-item"><i class="fas fa-phone"></i> ${document.getElementById('Telefono').value}</div>` : ''}
+                        ${document.getElementById('Direccion').value ? `<div class="contact-item"><i class="fas fa-map-marker-alt"></i> ${document.getElementById('Direccion').value}</div>` : ''}
                     </div>
                 </div>
                 
@@ -1033,7 +917,6 @@ function generarFormatoModerno() {
                 }
                 .section {
                     margin-bottom: 25px;
-
                 }
                 .section-title {
                     color: ${colorPrincipal};
@@ -1053,10 +936,8 @@ function generarFormatoModerno() {
         </head>
         <body>
             <div class="cv-container">
+                ${fotoPerfil}
                 <div class="left-column">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        ${fotoPerfil}
-                    </div>
                     <div class="header">
                         <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
                         <div class="contact-info">
@@ -1092,7 +973,6 @@ function generarFormatoModerno() {
         </body>
         </html>
     `;
-    return resultado;
 }
 
 function generarFormatoClasico() {
@@ -1123,9 +1003,7 @@ function generarFormatoClasico() {
                     background: white;
                 }
                 .header {
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
+                    text-align: center;
                     margin-bottom: 30px;
                     padding-bottom: 20px;
                     border-bottom: 2px solid ${colorPrincipal};
@@ -1142,7 +1020,6 @@ function generarFormatoClasico() {
                 }
                 .section {
                     margin-bottom: 20px;
-
                 }
                 .section-title {
                     background: ${colorPrincipal};
@@ -1161,15 +1038,13 @@ function generarFormatoClasico() {
         </head>
         <body>
             <div class="cv-container">
-                <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
-                    ${fotoPerfil}
-                    <div>
-                        <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
-                        <div class="contact-info">
-                            ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
-                            ${document.getElementById('Telefono').value ? `<span>${document.getElementById('Telefono').value}</span> | ` : ''}
-                            ${document.getElementById('Direccion').value ? `<span>${document.getElementById('Direccion').value}</span>` : ''}
-                        </div>
+                ${fotoPerfil}
+                <div class="header">
+                    <h1>${document.getElementById('Nombres').value} ${document.getElementById('Apellidos').value}</h1>
+                    <div class="contact-info">
+                        ${document.getElementById('Email').value ? `<span>${document.getElementById('Email').value}</span> | ` : ''}
+                        ${document.getElementById('Telefono').value ? `<span>${document.getElementById('Telefono').value}</span> | ` : ''}
+                        ${document.getElementById('Direccion').value ? `<span>${document.getElementById('Direccion').value}</span>` : ''}
                     </div>
                 </div>
                 
@@ -1281,35 +1156,25 @@ async function guardarDatos(mostrarAlerta = true) {
         return false;
     }
 
-    if (!fotoPerfilUrl) {
-        if (fotoUploadPromise) {
-            try {
-                await fotoUploadPromise;
-            } catch (e) {
-                console.error("Error esperando subida de foto:", e);
+    const fotoInput = document.getElementById('FotoPerfil');
+    if (!fotoPerfilUrl && fotoInput.files.length > 0 && !fotoPerfilLocal) {
+        const formData = new FormData();
+        formData.append('image', fotoInput.files[0]);
+        
+        try {
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (data.success) {
+                fotoPerfilUrl = data.data.url;
+                fotoPerfilId = data.data.id;
             }
-        }
-        if (!fotoPerfilUrl && fotoBase64) {
-            try {
-                const res = await fetch(fotoBase64);
-                const blob = await res.blob();
-                const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-                const formData = new FormData();
-                formData.append('image', file);
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fotoPerfilUrl = data.data.url;
-                    fotoPerfilId = data.data.id;
-                }
-            } catch (error) {
-                console.error("Error al subir la foto:", error);
-                if (mostrarAlerta) {
-                    alert("Error al subir la foto, pero los demás datos se guardaron");
-                }
+        } catch (error) {
+            console.error("Error al subir la foto:", error);
+            if (mostrarAlerta) {
+                alert("Error al subir la foto, pero los demás datos se guardaron");
             }
         }
     }
@@ -1321,9 +1186,6 @@ async function guardarDatos(mostrarAlerta = true) {
         fuenteSeleccionada,
         fotoPerfilUrl,
         fotoPerfilId,
-        fotoBase64,
-        fotoPosicion,
-        fotoForma,
         campos: {},
         fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -1343,25 +1205,17 @@ async function guardarDatos(mostrarAlerta = true) {
     try {
         const db = firebase.firestore();
         let docRef;
+        const querySnapshot = await db.collection('curriculums')
+            .where('nombres', '==', nombres)
+            .where('apellidos', '==', apellidos)
+            .limit(1)
+            .get();
         
-        if (cvActualDocId) {
-            docRef = db.collection('curriculums').doc(cvActualDocId);
+        if (!querySnapshot.empty) {
+            docRef = querySnapshot.docs[0].ref;
             await docRef.update(datos);
         } else {
-            const querySnapshot = await db.collection('curriculums')
-                .where('nombres', '==', nombres)
-                .where('apellidos', '==', apellidos)
-                .limit(1)
-                .get();
-            
-            if (!querySnapshot.empty) {
-                docRef = querySnapshot.docs[0].ref;
-                cvActualDocId = docRef.id;
-                await docRef.update(datos);
-            } else {
-                docRef = await db.collection('curriculums').add(datos);
-                cvActualDocId = docRef.id;
-            }
+            docRef = await db.collection('curriculums').add(datos);
         }
         
         if (mostrarAlerta) {
@@ -1494,7 +1348,6 @@ async function cargarCV(id) {
         const cv = doc.data();
         
         limpiarFormulario();
-        cvActualDocId = id;
         
         document.getElementById('Nombres').value = cv.nombres || '';
         document.getElementById('Apellidos').value = cv.apellidos || '';
@@ -1537,36 +1390,21 @@ async function cargarCV(id) {
             }
         });
         
-        const previewBorderRadius = (fotoForma === 'circulo') ? '50%' : '16px';
         if (cv.fotoPerfilUrl) {
             fotoPerfilUrl = cv.fotoPerfilUrl;
             fotoPerfilId = cv.fotoPerfilId;
             const previewContainer = document.getElementById('fotoPreviewContainer');
             previewContainer.style.display = 'block';
             previewContainer.innerHTML = `
-                <div style="width: 150px; height: 150px; border-radius: ${previewBorderRadius}; 
+                <div style="width: 150px; height: 150px; border-radius: 50%; 
                             border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: ${previewBorderRadius}; display: block;" src="${fotoPerfilUrl}">
-                </div>
-            `;
-        } else if (cv.fotoBase64) {
-            fotoBase64 = cv.fotoBase64;
-            fotoPerfilLocal = cv.fotoBase64;
-            const previewContainer = document.getElementById('fotoPreviewContainer');
-            previewContainer.style.display = 'block';
-            previewContainer.innerHTML = `
-                <div style="width: 150px; height: 150px; border-radius: ${previewBorderRadius}; 
-                            border: 4px solid ${cv.colorPrincipal || colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: ${previewBorderRadius}; display: block;" src="${fotoBase64}">
+                    <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilUrl}">
                 </div>
             `;
         }
         
         colorPrincipal = cv.colorPrincipal || '#3498db';
         fuenteSeleccionada = cv.fuenteSeleccionada || "'Poppins', sans-serif";
-        fotoPosicion = cv.fotoPosicion || 'left';
-        fotoForma = cv.fotoForma || 'circulo';
-        document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
         
         document.querySelectorAll('.color-option').forEach(opt => {
             if (opt.getAttribute('data-color') === colorPrincipal) {
@@ -1578,22 +1416,6 @@ async function cargarCV(id) {
         
         document.querySelectorAll('.font-option').forEach(opt => {
             if (opt.getAttribute('data-font') === fuenteSeleccionada) {
-                opt.classList.add('selected');
-            } else {
-                opt.classList.remove('selected');
-            }
-        });
-        
-        document.querySelectorAll('.pos-option').forEach(opt => {
-            if (opt.getAttribute('data-pos') === fotoPosicion) {
-                opt.classList.add('selected');
-            } else {
-                opt.classList.remove('selected');
-            }
-        });
-        
-        document.querySelectorAll('.shape-option').forEach(opt => {
-            if (opt.getAttribute('data-shape') === fotoForma) {
                 opt.classList.add('selected');
             } else {
                 opt.classList.remove('selected');
@@ -1623,7 +1445,6 @@ document.addEventListener('DOMContentLoaded', function () {
 function abrirCropModal(imageUrl) {
     const modal = document.getElementById('cropModal');
     const imageToCrop = document.getElementById('imageToCrop');
-    document.documentElement.style.setProperty('--preview-border-radius', fotoForma === 'circulo' ? '50%' : '16px');
     
     imageToCrop.src = imageUrl;
     modal.classList.add('show');
@@ -1642,21 +1463,7 @@ function abrirCropModal(imageUrl) {
             responsive: true,
             restore: false,
             checkCrossOrigin: true,
-            autoCropArea: 0.8,
-            cropBoxMovable: false,
-            cropBoxResizable: false,
-            ready() {
-                const slider = document.getElementById('zoomSlider');
-                const label = document.getElementById('zoomLevel');
-                if (slider) slider.value = 1;
-                if (label) label.textContent = '100%';
-            },
-            zoom(event) {
-                const slider = document.getElementById('zoomSlider');
-                const label = document.getElementById('zoomLevel');
-                if (slider) slider.value = event.detail.ratio;
-                if (label) label.textContent = Math.round(event.detail.ratio * 100) + '%';
-            }
+            autoCropArea: 0.8
         });
     }, 150);
 }
@@ -1702,24 +1509,17 @@ function obtenerImagenRecortada() {
         
         fotoPerfilLocal = URL.createObjectURL(blob);
         
-        const previewBorderRadius = fotoForma === 'circulo' ? '50%' : '16px';
         const previewContainer = document.getElementById('fotoPreviewContainer');
         previewContainer.style.display = 'block';
         previewContainer.innerHTML = `
-            <div style="width: 150px; height: 150px; border-radius: ${previewBorderRadius}; 
+            <div style="width: 150px; height: 150px; border-radius: 50%; 
                         border: 4px solid ${colorPrincipal}; overflow: hidden; margin: 0 auto;">
-                <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: ${previewBorderRadius}; display: block;" src="${fotoPerfilLocal}">
+                <img id="fotoPreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" src="${fotoPerfilLocal}">
             </div>
         `;
         
         const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-        fotoUploadPromise = subirFotoABackground(croppedFile);
-        
-        const reader = new FileReader();
-        reader.onloadend = function() {
-            fotoBase64 = reader.result;
-        };
-        reader.readAsDataURL(blob);
+        subirFotoABackground(croppedFile);
         
         actualizarVistaPrevia();
         cerrarCropModal();
@@ -1891,163 +1691,5 @@ async function aplicarMejoraMagica() {
         console.error('Error en Filtro Mágico:', err);
         alert(`✨ Filtro Mágico: ${err.message}`);
         loadingOverlay.style.display = 'none';
-    }
-}
-
-async function extraerDatosConIA() {
-    const apiKey = document.getElementById('geminiApiKey').value.trim();
-    const fileInput = document.getElementById('cvImageInput');
-    const file = fileInput.files[0];
-
-    if (!apiKey) {
-        alert('Por favor ingresa tu API Key de Gemini');
-        return;
-    }
-
-    if (!file) {
-        alert('Por favor selecciona una foto del CV');
-        return;
-    }
-
-    const btn = document.querySelector('button[onclick="extraerDatosConIA()"]');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extrayendo datos...';
-
-    try {
-        const reader = new FileReader();
-        const imageData = await new Promise((resolve, reject) => {
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-
-        const prompt = `Extrae toda la información de este currículum y devuélvela como un objeto JSON válido (sin markdown, sin bloques de código, solo el JSON puro). El JSON debe seguir esta estructura exacta:
-{
-  "Nombres": "",
-  "Apellidos": "",
-  "Cedula": "",
-  "FechaNacimiento": "",
-  "Direccion": "",
-  "Sexo": "",
-  "EstadoCivil": "",
-  "Email": "",
-  "Telefono": "",
-  "EducacionPrimaria": "",
-  "EducacionSecundaria": "",
-  "EducacionSuperior": [],
-  "Experiencia": [],
-  "Habilidades": [],
-  "Cursos": []
-}
-Los arrays deben contener strings individuales. Para FechaNacimiento usa formato YYYY-MM-DD. Para Sexo usa exactamente "Femenino", "Masculino" u "Otro". Si un campo no está presente, déjalo como string vacío o array vacío según corresponda.`;
-
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        { inlineData: { mimeType: file.type || 'image/jpeg', data: imageData } }
-                    ]
-                }]
-            })
-        });
-        if (!resp.ok) throw new Error('Error en la API de Gemini: ' + (await resp.text()));
-        const json = await resp.json();
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        let jsonStr = text.trim();
-        if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/```(?:json)?\s*/g, '').trim();
-        }
-
-        const data = JSON.parse(jsonStr);
-
-        const simpleFields = ['Nombres', 'Apellidos', 'Cedula', 'FechaNacimiento', 'Direccion', 'Sexo', 'EstadoCivil', 'Email', 'Telefono', 'EducacionPrimaria', 'EducacionSecundaria'];
-        simpleFields.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && data[id] && data[id].toString().trim()) {
-                el.value = data[id].toString().trim();
-            }
-        });
-
-        if (data.Sexo) {
-            actualizarDatos();
-            if (data.EstadoCivil) {
-                document.getElementById('EstadoCivil').value = data.EstadoCivil.trim();
-            }
-        }
-
-        const mainInput = document.getElementById('EducacionSuperior');
-        const camposContainer = document.getElementById('EducacionSuperiorCampos');
-        camposContainer.innerHTML = '';
-        if (data.EducacionSuperior && Array.isArray(data.EducacionSuperior)) {
-            data.EducacionSuperior.forEach((item, index) => {
-                if (index === 0 && mainInput) {
-                    mainInput.value = item;
-                } else if (item.trim()) {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = item;
-                    input.style.marginTop = '5px';
-                    const removeBtn = document.createElement('span');
-                    removeBtn.className = 'remove-btn';
-                    removeBtn.innerHTML = '(-)';
-                    removeBtn.onclick = function() {
-                        camposContainer.removeChild(input);
-                        camposContainer.removeChild(removeBtn);
-                        if (camposContainer.lastElementChild) camposContainer.removeChild(camposContainer.lastElementChild);
-                        actualizarVistaPrevia();
-                    };
-                    camposContainer.appendChild(input);
-                    camposContainer.appendChild(removeBtn);
-                    camposContainer.appendChild(document.createElement('br'));
-                }
-            });
-        }
-
-        const dynamicFields = [
-            { id: 'Experiencia', dataKey: 'Experiencia' },
-            { id: 'Habilidades', dataKey: 'Habilidades' },
-            { id: 'Cursos', dataKey: 'Cursos' }
-        ];
-
-        dynamicFields.forEach(({ id, dataKey }) => {
-            const container = document.getElementById(id);
-            container.innerHTML = '';
-            if (data[dataKey] && Array.isArray(data[dataKey])) {
-                data[dataKey].forEach(item => {
-                    if (item.trim()) {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.value = item;
-                        input.style.marginTop = '5px';
-                        const removeBtn = document.createElement('span');
-                        removeBtn.className = 'remove-btn';
-                        removeBtn.innerHTML = '(-)';
-                        removeBtn.onclick = function() {
-                            container.removeChild(input);
-                            container.removeChild(removeBtn);
-                            if (container.lastElementChild) container.removeChild(container.lastElementChild);
-                            actualizarVistaPrevia();
-                        };
-                        container.appendChild(input);
-                        container.appendChild(removeBtn);
-                        container.appendChild(document.createElement('br'));
-                    }
-                });
-            }
-        });
-
-        mostrarToast('¡Datos extraídos correctamente!');
-
-    } catch (error) {
-        console.error('Error al extraer datos con IA:', error);
-        alert('Error al extraer datos: ' + error.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
     }
 }
