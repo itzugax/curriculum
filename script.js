@@ -11,7 +11,6 @@ let cvActualDocId = null;
 let fotoPosicion = 'right';
 let fotoForma = 'cuadrado';
 const IMGBB_API_KEY = '7fbfd4fd0883d7aa649035d839b12e43';
-const GEMINI_API_KEY = 'AIzaSyDM9J1CTOQTt5Bo4YloWWXKoeE1cUSfkeY';
 let suggestionsMap = {};
 
 // Animación de máquina de escribir para el título
@@ -311,6 +310,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (cropperInstance) {
                 cropperInstance.zoomTo(parseFloat(this.value));
             }
+        });
+    }
+
+    // Cargar API Key guardada y persistir cambios
+    const apiInput = document.getElementById('geminiApiKey');
+    if (apiInput) {
+        const saved = localStorage.getItem('gemini_api_key');
+        if (saved) apiInput.value = saved;
+        apiInput.addEventListener('input', function() {
+            if (this.value.trim()) localStorage.setItem('gemini_api_key', this.value.trim());
         });
     }
 
@@ -2065,12 +2074,23 @@ async function aplicarMejoraMagica() {
     }
 }
 
+function obtenerGeminiKey() {
+    const input = document.getElementById('geminiApiKey');
+    return input?.value?.trim() || localStorage.getItem('gemini_api_key') || '';
+}
+
 async function extraerDatosConIA() {
     const fileInput = document.getElementById('cvImageInput');
     const file = fileInput.files[0];
 
     if (!file) {
         alert('Por favor selecciona una foto del CV');
+        return;
+    }
+
+    const apiKey = obtenerGeminiKey();
+    if (!apiKey) {
+        alert('Por favor ingresa tu API Key de Gemini en el campo correspondiente');
         return;
     }
 
@@ -2107,7 +2127,7 @@ async function extraerDatosConIA() {
 }
 Los arrays deben contener strings individuales. Para FechaNacimiento usa formato YYYY-MM-DD. Para Sexo usa exactamente "Femenino", "Masculino" u "Otro". Si un campo no está presente, déjalo como string vacío o array vacío según corresponda.`;
 
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
