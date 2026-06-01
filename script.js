@@ -2264,11 +2264,11 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
         let exito = false;
         let modoTexto = '';
 
-        const modelos = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        const modelos = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 
         for (const modelo of modelos) {
             if (exito) break;
-            for (const modo of ['stream', 'normal']) {
+            for (const modo of ['normal', 'stream']) {
                 if (exito) break;
                 for (let intento = 0; intento < 3 && !exito; intento++) {
                     const key = obtenerGeminiKey();
