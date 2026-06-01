@@ -2295,6 +2295,8 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
                 if (!resp.ok) {
                     const errText = await resp.text();
                     if (resp.status === 429 || resp.status >= 500) {
+                        const espera = Math.min(1000 * Math.pow(2, intento), 10000);
+                        await new Promise(r => setTimeout(r, espera));
                         continue;
                     }
                     throw new Error('Error Gemini: ' + errText);
@@ -2334,6 +2336,8 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
             } catch (e) {
                 if (intento >= 8) throw e;
                 if (e.message && (e.message.includes('429') || e.message.includes('500') || e.message.includes('502') || e.message.includes('503'))) {
+                    const espera = Math.min(1000 * Math.pow(2, intento), 10000);
+                    await new Promise(r => setTimeout(r, espera));
                     continue;
                 }
                 if (intento >= 8) throw e;
