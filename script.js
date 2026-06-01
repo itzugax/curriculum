@@ -2086,18 +2086,9 @@ async function aplicarMejoraMagica() {
     }
 }
 
-let _keyIndex = 0;
-
 function obtenerGeminiKey() {
     if (typeof GEMINI_API_KEY_LOCAL !== 'undefined' && GEMINI_API_KEY_LOCAL) return GEMINI_API_KEY_LOCAL;
-    const stored = localStorage.getItem('gemini_api_key');
-    if (stored) return stored;
-    if (typeof GEMINI_API_KEYS !== 'undefined' && Array.isArray(GEMINI_API_KEYS) && GEMINI_API_KEYS.length > 0) {
-        const key = GEMINI_API_KEYS[_keyIndex % GEMINI_API_KEYS.length];
-        _keyIndex++;
-        return key;
-    }
-    return typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '';
+    return localStorage.getItem('gemini_api_key') || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '');
 }
 
 async function extraerDatosConIA() {
