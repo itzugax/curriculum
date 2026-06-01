@@ -2086,9 +2086,18 @@ async function aplicarMejoraMagica() {
     }
 }
 
+let geminiKeyIndex = 0;
+
 function obtenerGeminiKey() {
     if (typeof GEMINI_API_KEY_LOCAL !== 'undefined' && GEMINI_API_KEY_LOCAL) return GEMINI_API_KEY_LOCAL;
-    return localStorage.getItem('gemini_api_key') || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '');
+    if (typeof GEMINI_API_KEYS !== 'undefined' && GEMINI_API_KEYS.length > 0) {
+        const key = GEMINI_API_KEYS[geminiKeyIndex % GEMINI_API_KEYS.length];
+        geminiKeyIndex++;
+        return key;
+    }
+    const localKey = localStorage.getItem('gemini_api_key');
+    if (localKey) return localKey;
+    return '';
 }
 
 async function extraerDatosConIA() {
@@ -2264,7 +2273,7 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
         let exito = false;
         let modoTexto = '';
 
-        const modelos = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+        const modelos = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
         for (const modelo of modelos) {
             if (exito) break;
