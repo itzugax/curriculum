@@ -474,7 +474,6 @@ function agregarCampo(id) {
 
     const input = document.createElement("input");
     input.type = "text";
-    input.style.marginTop = "5px";
     
     if (id === "Habilidades") {
         input.placeholder = "Ej: Liderazgo, Trabajo en equipo...";
@@ -486,23 +485,24 @@ function agregarCampo(id) {
         input.placeholder = `Ingrese ${id.toLowerCase()}`;
     }
 
-    const removeBtn = document.createElement("span");
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
     removeBtn.className = "remove-btn";
-    removeBtn.innerHTML = "(-)";
+    removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
     removeBtn.onclick = function() {
-        div.removeChild(input);
-        div.removeChild(removeBtn);
-        div.removeChild(document.createElement("br"));
+        row.remove();
         actualizarVistaPrevia();
     };
 
+    const row = document.createElement("div");
+    row.className = "field-row";
     input.addEventListener('input', actualizarVistaPrevia);
     const mapKey = id === "EducacionSuperior" ? "EducacionSuperior" : id;
     configurarAutocompletadoInput(input, mapKey);
 
-    div.appendChild(input);
-    div.appendChild(removeBtn);
-    div.appendChild(document.createElement("br"));
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    div.appendChild(row);
     actualizarVistaPrevia();
 }
 
@@ -541,10 +541,7 @@ async function generarCurriculum() {
     overlay.innerHTML = `
         <div class="carga-card">
             <div class="carga-spinner">
-                <svg class="spinner-ring" viewBox="0 0 80 80">
-                    <circle class="spinner-bg" cx="40" cy="40" r="32" fill="none" stroke-width="4"/>
-                    <circle class="spinner-fill" cx="40" cy="40" r="32" fill="none" stroke-width="4"/>
-                </svg>
+                <div class="spinner-ring-border"></div>
                 <span class="carga-icon"><i class="fas fa-file-alt"></i></span>
             </div>
             <p class="carga-texto" id="cargaTexto">Generando...</p>
@@ -1613,12 +1610,13 @@ function mostrarCVs(cvs) {
     if (cvs.length === 0) {
         html = '<p style="text-align: center; color: #666;">No se encontraron resultados</p>';
     } else {
-        cvs.forEach(cv => {
+        cvs.forEach((cv, i) => {
             html += `
                 <div class="saved-cv-item">
+                    <span class="cv-number">${cvs.length - i}</span>
                     <div class="saved-cv-content" onclick="cargarCV('${cv.id}')">
                         <strong>${cv.nombres} ${cv.apellidos}</strong>
-                        <div>${cv.cedula}</div>
+                        <div>${cv.cedula || 'Sin cédula'}</div>
                     </div>
                     <button class="cv-delete-btn" onclick="eliminarCV('${cv.id}', event)">
                         <i class="fas fa-times"></i>
@@ -1703,25 +1701,25 @@ async function cargarCV(id) {
                         const input = document.createElement('input');
                         input.type = 'text';
                         input.value = valor;
-                        input.style.marginTop = '5px';
                         
-                        const removeBtn = document.createElement('span');
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
                         removeBtn.className = 'remove-btn';
-                        removeBtn.innerHTML = '(-)';
+                        removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
                         removeBtn.onclick = function() {
-                            div.removeChild(input);
-                            div.removeChild(removeBtn);
-                            div.removeChild(div.lastElementChild);
+                            row.remove();
                             actualizarVistaPrevia();
                         };
                         
+                        const row = document.createElement('div');
+                        row.className = 'field-row';
                         input.addEventListener('input', actualizarVistaPrevia);
                         const mapKey = id === 'EducacionSuperiorCampos' ? 'EducacionSuperior' : id === 'EducacionPrimariaCampos' ? 'EducacionPrimaria' : id === 'EducacionSecundariaCampos' ? 'EducacionSecundaria' : id;
                         configurarAutocompletadoInput(input, mapKey);
                         
-                        div.appendChild(input);
-                        div.appendChild(removeBtn);
-                        div.appendChild(document.createElement('br'));
+                        row.appendChild(input);
+                        row.appendChild(removeBtn);
+                        div.appendChild(row);
                     }
                 });
             }
@@ -2088,9 +2086,18 @@ async function aplicarMejoraMagica() {
     }
 }
 
+let _keyIndex = 0;
+
 function obtenerGeminiKey() {
     if (typeof GEMINI_API_KEY_LOCAL !== 'undefined' && GEMINI_API_KEY_LOCAL) return GEMINI_API_KEY_LOCAL;
-    return localStorage.getItem('gemini_api_key') || (typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '');
+    const stored = localStorage.getItem('gemini_api_key');
+    if (stored) return stored;
+    if (typeof GEMINI_API_KEYS !== 'undefined' && Array.isArray(GEMINI_API_KEYS) && GEMINI_API_KEYS.length > 0) {
+        const key = GEMINI_API_KEYS[_keyIndex % GEMINI_API_KEYS.length];
+        _keyIndex++;
+        return key;
+    }
+    return typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : '';
 }
 
 async function extraerDatosConIA() {
@@ -2114,6 +2121,123 @@ async function extraerDatosConIA() {
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extrayendo datos...';
+
+    const esperarFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 12)));
+
+    const charsEscritos = {};
+    const camposSimples = ['Nombres', 'Apellidos', 'Cedula', 'FechaNacimiento', 'Direccion', 'Sexo', 'EstadoCivil', 'Email', 'Telefono', 'EducacionPrimaria', 'EducacionSecundaria'];
+    const camposArray = ['EducacionSuperior', 'Experiencia', 'Habilidades', 'Cursos'];
+
+    function extraerValor(texto, key) {
+        const regex = new RegExp(`"${key}"\\s*:\\s*"([^"]*)`);
+        const m = regex.exec(texto);
+        return m ? m[1] : null;
+    }
+
+    function extraerArray(texto, key) {
+        const items = [];
+        const regex = new RegExp(`"${key}"\\s*:\\s*\\[([^\\]]*)\\]`);
+        const m = regex.exec(texto);
+        if (m) {
+            const inner = m[1];
+            const itemRegex = /"([^"]*)"/g;
+            let match;
+            while ((match = itemRegex.exec(inner)) !== null) {
+                if (match[1].trim()) items.push(match[1]);
+            }
+        }
+        return items;
+    }
+
+    function escribirCaracteres(el, textoCompleto) {
+        const escritos = charsEscritos[el.id] || 0;
+        const nuevos = textoCompleto.slice(escritos);
+        if (nuevos.length === 0) return 0;
+        el.value = textoCompleto.slice(0, escritos + nuevos.length);
+        charsEscritos[el.id] = escritos + nuevos.length;
+        return nuevos.length;
+    }
+
+    async function escribirNuevos(el, textoCompleto) {
+        const escritos = charsEscritos[el.id] || 0;
+        const nuevos = textoCompleto.slice(escritos);
+        for (const ch of nuevos) {
+            el.value += ch;
+            charsEscritos[el.id] = (charsEscritos[el.id] || 0) + 1;
+            actualizarVistaPrevia();
+            await esperarFrame();
+        }
+    }
+
+    async function procesarChunk(fullText) {
+        for (const key of camposSimples) {
+            const val = extraerValor(fullText, key);
+            if (val !== null) {
+                const el = document.getElementById(key);
+                if (el) await escribirNuevos(el, val);
+            }
+        }
+        if (extraerValor(fullText, 'Sexo')) {
+            actualizarDatos();
+            await esperarFrame();
+            const ecVal = extraerValor(fullText, 'EstadoCivil');
+            if (ecVal !== null) {
+                const el = document.getElementById('EstadoCivil');
+                if (el) await escribirNuevos(el, ecVal);
+            }
+        }
+        for (const key of camposArray) {
+            const items = extraerArray(fullText, key);
+            if (key === 'EducacionSuperior') {
+                const mainInput = document.getElementById('EducacionSuperior');
+                const container = document.getElementById('EducacionSuperiorCampos');
+                container.innerHTML = '';
+                items.forEach((item, i) => {
+                    if (i === 0 && mainInput) {
+                        mainInput.value = item;
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = item;
+                        configurarAutocompletadoInput(input, 'EducacionSuperior');
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
+                        const row = document.createElement('div');
+                        row.className = 'field-row';
+                        removeBtn.onclick = function() { row.remove(); actualizarVistaPrevia(); };
+                        input.addEventListener('input', actualizarVistaPrevia);
+                        row.appendChild(input);
+                        row.appendChild(removeBtn);
+                        container.appendChild(row);
+                    }
+                });
+                actualizarVistaPrevia();
+            } else {
+                const container = document.getElementById(key);
+                container.innerHTML = '';
+                items.forEach(item => {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = item;
+                    configurarAutocompletadoInput(input, key);
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
+                    const row = document.createElement('div');
+                    row.className = 'field-row';
+                    removeBtn.onclick = function() { row.remove(); actualizarVistaPrevia(); };
+                    input.addEventListener('input', actualizarVistaPrevia);
+                    row.appendChild(input);
+                    row.appendChild(removeBtn);
+                    container.appendChild(row);
+                });
+                actualizarVistaPrevia();
+            }
+        }
+    }
 
     try {
         const reader = new FileReader();
@@ -2143,113 +2267,119 @@ async function extraerDatosConIA() {
 }
 Los arrays deben contener strings individuales. Para FechaNacimiento usa formato YYYY-MM-DD. Para Sexo usa exactamente "Femenino", "Masculino" u "Otro". Si un campo no está presente, déjalo como string vacío o array vacío según corresponda.`;
 
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        { inline_data: { mime_type: file.type || 'image/jpeg', data: imageData } }
-                    ]
-                }]
-            })
-        });
-        if (!resp.ok) {
-            const errText = await resp.text();
-            throw new Error('Error Gemini: ' + errText);
-        }
-        const json = await resp.json();
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        btn.innerHTML = '<i class="fas fa-magic"></i> Transcribiendo...';
 
-        let jsonStr = text.trim();
+        let fullText = '';
+        let exito = false;
+
+        for (let intento = 0; intento < 9 && !exito; intento++) {
+            const key = obtenerGeminiKey();
+            if (!key) {
+                if (intento === 0) alert('No hay API keys configuradas');
+                break;
+            }
+
+            try {
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${key}&alt=sse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inline_data: { mime_type: file.type || 'image/jpeg', data: imageData } }
+                            ]
+                        }]
+                    })
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    if (resp.status === 429 || resp.status >= 500) {
+                        continue;
+                    }
+                    throw new Error('Error Gemini: ' + errText);
+                }
+
+                const readerStream = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                fullText = '';
+
+                while (true) {
+                    const { done, value } = await readerStream.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6).trim();
+                            if (data === '[DONE]') continue;
+                            try {
+                                const parsed = JSON.parse(data);
+                                const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                if (chunk) {
+                                    fullText += chunk;
+                                    await procesarChunk(fullText);
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                }
+
+                exito = true;
+
+            } catch (e) {
+                if (intento >= 8) throw e;
+                if (e.message && (e.message.includes('429') || e.message.includes('500') || e.message.includes('502') || e.message.includes('503'))) {
+                    continue;
+                }
+                if (intento >= 8) throw e;
+            }
+        }
+        if (!exito) throw new Error('No se pudo completar la extracción después de varios intentos');
+
+        let jsonStr = fullText.trim();
         if (jsonStr.startsWith('```')) {
             jsonStr = jsonStr.replace(/```(?:json)?\s*/g, '').trim();
         }
+        const dataFinal = JSON.parse(jsonStr);
 
-        const data = JSON.parse(jsonStr);
-
-        const simpleFields = ['Nombres', 'Apellidos', 'Cedula', 'FechaNacimiento', 'Direccion', 'Sexo', 'EstadoCivil', 'Email', 'Telefono', 'EducacionPrimaria', 'EducacionSecundaria'];
-        simpleFields.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && data[id] && data[id].toString().trim()) {
-                el.value = data[id].toString().trim();
+        const allSimpleOk = camposSimples.every(k => {
+            const el = document.getElementById(k);
+            const v = dataFinal[k];
+            if (el && v && v.toString().trim()) {
+                return el.value === v.toString().trim();
             }
+            return true;
         });
 
-        if (data.Sexo) {
-            actualizarDatos();
-            if (data.EstadoCivil) {
-                document.getElementById('EstadoCivil').value = data.EstadoCivil.trim();
-            }
-        }
-
-        const mainInput = document.getElementById('EducacionSuperior');
-        const camposContainer = document.getElementById('EducacionSuperiorCampos');
-        camposContainer.innerHTML = '';
-        if (data.EducacionSuperior && Array.isArray(data.EducacionSuperior)) {
-            data.EducacionSuperior.forEach((item, index) => {
-                if (index === 0 && mainInput) {
-                    mainInput.value = item;
-                } else if (item.trim()) {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = item;
-                    input.style.marginTop = '5px';
-                    configurarAutocompletadoInput(input, 'EducacionSuperior');
-                    const removeBtn = document.createElement('span');
-                    removeBtn.className = 'remove-btn';
-                    removeBtn.innerHTML = '(-)';
-                    removeBtn.onclick = function() {
-                        camposContainer.removeChild(input);
-                        camposContainer.removeChild(removeBtn);
-                        if (camposContainer.lastElementChild) camposContainer.removeChild(camposContainer.lastElementChild);
-                        actualizarVistaPrevia();
-                    };
-                    camposContainer.appendChild(input);
-                    camposContainer.appendChild(removeBtn);
-                    camposContainer.appendChild(document.createElement('br'));
+        if (!allSimpleOk) {
+            for (const key of camposSimples) {
+                const el = document.getElementById(key);
+                const v = dataFinal[key];
+                if (el && v && v.toString().trim() && el.value !== v.toString().trim()) {
+                    charsEscritos[key] = 0;
+                    el.value = '';
+                    await escribirNuevos(el, v.toString().trim());
                 }
-            });
+            }
         }
 
-        const dynamicFields = [
-            { id: 'Experiencia', dataKey: 'Experiencia' },
-            { id: 'Habilidades', dataKey: 'Habilidades' },
-            { id: 'Cursos', dataKey: 'Cursos' }
-        ];
-
-        dynamicFields.forEach(({ id, dataKey }) => {
-            const container = document.getElementById(id);
-            container.innerHTML = '';
-            if (data[dataKey] && Array.isArray(data[dataKey])) {
-                data[dataKey].forEach(item => {
-                    if (item.trim()) {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.value = item;
-                        input.style.marginTop = '5px';
-                        configurarAutocompletadoInput(input, id);
-                        const removeBtn = document.createElement('span');
-                        removeBtn.className = 'remove-btn';
-                        removeBtn.innerHTML = '(-)';
-                        removeBtn.onclick = function() {
-                            container.removeChild(input);
-                            container.removeChild(removeBtn);
-                            if (container.lastElementChild) container.removeChild(container.lastElementChild);
-                            actualizarVistaPrevia();
-                        };
-                        container.appendChild(input);
-                        container.appendChild(removeBtn);
-                        container.appendChild(document.createElement('br'));
-                    }
-                });
+        if (dataFinal.Sexo) {
+            actualizarDatos();
+            const ecEl = document.getElementById('EstadoCivil');
+            const ecV = dataFinal.EstadoCivil;
+            if (ecEl && ecV && ecV.trim() && ecEl.value !== ecV.trim()) {
+                charsEscritos['EstadoCivil'] = 0;
+                ecEl.value = '';
+                await escribirNuevos(ecEl, ecV.trim());
             }
-        });
-        actualizarVistaPrevia();
+        }
 
         await guardarDatos(false);
-
         mostrarToast('¡Datos extraídos correctamente!');
 
     } catch (error) {
@@ -2260,3 +2390,22 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
         btn.innerHTML = originalText;
     }
 }
+
+function mostrarNombreArchivo(inputId, labelId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    if (input && label) {
+        input.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                label.innerHTML = '<i class="fas fa-file"></i> ' + this.files[0].name;
+            } else {
+                label.innerHTML = label.getAttribute('data-default') || label.innerHTML;
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    mostrarNombreArchivo('cvImageInput', 'cvImageLabel');
+    mostrarNombreArchivo('FotoPerfil', 'fotoPerfilLabel');
+});
