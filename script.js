@@ -2271,79 +2271,180 @@ Los arrays deben contener strings individuales. Para FechaNacimiento usa formato
 
         let fullText = '';
         let exito = false;
+        let modoTexto = '';
 
-        for (let intento = 0; intento < 9 && !exito; intento++) {
-            const key = obtenerGeminiKey();
-            if (!key) {
-                if (intento === 0) alert('No hay API keys configuradas');
-                break;
-            }
+        const modelos = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
-            try {
-                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${key}&alt=sse`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                { inline_data: { mime_type: file.type || 'image/jpeg', data: imageData } }
-                            ]
-                        }]
-                    })
-                });
-                if (!resp.ok) {
-                    const errText = await resp.text();
-                    if (resp.status === 429 || resp.status >= 500) {
-                        const espera = Math.min(1000 * Math.pow(2, intento), 10000);
-                        await new Promise(r => setTimeout(r, espera));
-                        continue;
+        for (const modelo of modelos) {
+            if (exito) break;
+            for (const modo of ['stream', 'normal']) {
+                if (exito) break;
+                for (let intento = 0; intento < 3 && !exito; intento++) {
+                    const key = obtenerGeminiKey();
+                    if (!key) {
+                        if (intento === 0) alert('No hay API keys configuradas');
+                        break;
                     }
-                    throw new Error('Error Gemini: ' + errText);
-                }
 
-                const readerStream = resp.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                fullText = '';
+                    const endpoint = modo === 'stream'
+                        ? `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:streamGenerateContent?key=${key}&alt=sse`
+                        : `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${key}`;
 
-                while (true) {
-                    const { done, value } = await readerStream.read();
-                    if (done) break;
+                    try {
+                        const resp = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: prompt },
+                                        { inline_data: { mime_type: file.type || 'image/jpeg', data: imageData } }
+                                    ]
+                                }]
+                            })
+                        });
+                        if (!resp.ok) {
+                            const errText = await resp.text();
+                            if (resp.status === 429 || resp.status >= 500) {
+                                const espera = Math.min(1000 * Math.pow(2, intento), 5000);
+                                await new Promise(r => setTimeout(r, espera));
+                                continue;
+                            }
+                            throw new Error('Error Gemini: ' + errText);
+                        }
 
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
+                        if (modo === 'stream') {
+                            const readerStream = resp.body.getReader();
+                            const decoder = new TextDecoder();
+                            let buffer = '';
+                            fullText = '';
 
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6).trim();
-                            if (data === '[DONE]') continue;
-                            try {
-                                const parsed = JSON.parse(data);
-                                const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                                if (chunk) {
-                                    fullText += chunk;
-                                    await procesarChunk(fullText);
+                            while (true) {
+                                const { done, value } = await readerStream.read();
+                                if (done) break;
+
+                                buffer += decoder.decode(value, { stream: true });
+                                const lines = buffer.split('\n');
+                                buffer = lines.pop() || '';
+
+                                for (const line of lines) {
+                                    if (line.startsWith('data: ')) {
+                                        const data = line.slice(6).trim();
+                                        if (data === '[DONE]') continue;
+                                        try {
+                                            const parsed = JSON.parse(data);
+                                            const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                            if (chunk) {
+                                                fullText += chunk;
+                                                await procesarChunk(fullText);
+                                            }
+                                        } catch (e) { }
+                                    }
                                 }
-                            } catch (e) { }
+                            }
+                            modoTexto = 'stream';
+                        } else {
+                            const json = await resp.json();
+                            fullText = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                            modoTexto = 'normal';
+                        }
+
+                        exito = true;
+
+                    } catch (e) {
+                        if (intento >= 2) continue;
+                        if (e.message && (e.message.includes('429') || e.message.includes('500') || e.message.includes('502') || e.message.includes('503'))) {
+                            const espera = Math.min(1000 * Math.pow(2, intento), 5000);
+                            await new Promise(r => setTimeout(r, espera));
+                            continue;
                         }
                     }
                 }
-
-                exito = true;
-
-            } catch (e) {
-                if (intento >= 8) throw e;
-                if (e.message && (e.message.includes('429') || e.message.includes('500') || e.message.includes('502') || e.message.includes('503'))) {
-                    const espera = Math.min(1000 * Math.pow(2, intento), 10000);
-                    await new Promise(r => setTimeout(r, espera));
-                    continue;
-                }
-                if (intento >= 8) throw e;
             }
         }
         if (!exito) throw new Error('No se pudo completar la extracción después de varios intentos');
+
+        if (modoTexto === 'normal') {
+            let jsonStr = fullText.trim();
+            if (jsonStr.startsWith('```')) {
+                jsonStr = jsonStr.replace(/```(?:json)?\s*/g, '').trim();
+            }
+            const dataFull = JSON.parse(jsonStr);
+            for (const key of camposSimples) {
+                const el = document.getElementById(key);
+                const v = dataFull[key];
+                if (el && v && v.toString().trim()) {
+                    el.value = '';
+                    charsEscritos[key] = 0;
+                    await escribirNuevos(el, v.toString().trim());
+                }
+            }
+            if (dataFull.Sexo) {
+                actualizarDatos();
+                const ecV = dataFull.EstadoCivil;
+                if (ecV) {
+                    document.getElementById('EstadoCivil').value = '';
+                    charsEscritos['EstadoCivil'] = 0;
+                    await escribirNuevos(document.getElementById('EstadoCivil'), ecV.trim());
+                }
+            }
+            const mainInput = document.getElementById('EducacionSuperior');
+            const camposContainer = document.getElementById('EducacionSuperiorCampos');
+            camposContainer.innerHTML = '';
+            const arrSuperior = dataFull['EducacionSuperior'];
+            if (arrSuperior && Array.isArray(arrSuperior)) {
+                arrSuperior.forEach((item, i) => {
+                    if (i === 0 && mainInput && item.trim()) {
+                        mainInput.value = item;
+                    } else if (item.trim()) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = item;
+                        configurarAutocompletadoInput(input, 'EducacionSuperior');
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
+                        const row = document.createElement('div');
+                        row.className = 'field-row';
+                        removeBtn.onclick = function() { row.remove(); actualizarVistaPrevia(); };
+                        input.addEventListener('input', actualizarVistaPrevia);
+                        row.appendChild(input);
+                        row.appendChild(removeBtn);
+                        camposContainer.appendChild(row);
+                    }
+                });
+            }
+            actualizarVistaPrevia();
+            for (const { id, dataKey } of [{ id: 'Experiencia', dataKey: 'Experiencia' }, { id: 'Habilidades', dataKey: 'Habilidades' }, { id: 'Cursos', dataKey: 'Cursos' }]) {
+                const container = document.getElementById(id);
+                container.innerHTML = '';
+                const items = dataFull[dataKey];
+                if (items && Array.isArray(items)) {
+                    items.forEach(item => {
+                        if (item.trim()) {
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = item;
+                            configurarAutocompletadoInput(input, id);
+                            const removeBtn = document.createElement('button');
+                            removeBtn.type = 'button';
+                            removeBtn.className = 'remove-btn';
+                            removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
+                            const row = document.createElement('div');
+                            row.className = 'field-row';
+                            removeBtn.onclick = function() { row.remove(); actualizarVistaPrevia(); };
+                            input.addEventListener('input', actualizarVistaPrevia);
+                            row.appendChild(input);
+                            row.appendChild(removeBtn);
+                            container.appendChild(row);
+                        }
+                    });
+                }
+            }
+            actualizarVistaPrevia();
+            await esperarFrame();
+        }
 
         let jsonStr = fullText.trim();
         if (jsonStr.startsWith('```')) {
