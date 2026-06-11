@@ -715,8 +715,7 @@ function generarFotoPerfilHTML(tamano = 120) {
                     overflow: hidden;
                     flex-shrink: 0;">
             <img src="${fotoParaMostrar}" 
-                 style="width: 100%; height: 100%; object-fit: cover; border-radius: ${borderRadius}; display: block;"
-                 crossorigin="anonymous">
+                 style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
     `;
 }
