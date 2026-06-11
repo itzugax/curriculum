@@ -712,10 +712,11 @@ function generarFotoPerfilHTML(tamano = 120) {
     return `
         <div style="width: ${tamano}px; height: ${tamano}px; border-radius: ${borderRadius}; 
                     border: 3px solid ${colorPrincipal}; 
-                    overflow: hidden;
+                    background-image: url('${fotoParaMostrar}');
+                    background-size: cover;
+                    background-position: center;
+                    background-repeat: no-repeat;
                     flex-shrink: 0;">
-            <img src="${fotoParaMostrar}" 
-                 style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
     `;
 }
