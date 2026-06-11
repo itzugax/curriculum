@@ -647,9 +647,9 @@ async function descargarPDF() {
     const opt = {
         margin: [8, 8],
         filename: `${nombres}_${apellidos}_CV.pdf`,
-        image: { type: 'jpeg', quality: 1 },
+        image: { type: 'jpeg', quality: 0.95 },
         html2canvas: {
-            scale: 2,
+            scale: 3,
             letterRendering: true,
             useCORS: true,
             scrollX: 0,
@@ -677,7 +677,7 @@ function convertirImagenABase64(url) {
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
-            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+            const dataURL = canvas.toDataURL('image/jpeg', 0.95);
             resolve(dataURL);
         };
         img.onerror = error => reject(error);
@@ -703,7 +703,7 @@ function generarHTMLCV(formato = document.getElementById('PreviewFormatoCV').val
     return html;
 }
 
-function generarFotoPerfilHTML(tamano = 100) {
+function generarFotoPerfilHTML(tamano = 120) {
     const fotoParaMostrar = fotoPerfilLocal || fotoPerfilUrl;
     if (!fotoParaMostrar) return '';
     
@@ -712,11 +712,11 @@ function generarFotoPerfilHTML(tamano = 100) {
     return `
         <div style="width: ${tamano}px; height: ${tamano}px; border-radius: ${borderRadius}; 
                     border: 3px solid ${colorPrincipal}; 
-                    background-image: url('${fotoParaMostrar}');
-                    background-size: cover;
-                    background-position: center;
-                    background-repeat: no-repeat;
+                    overflow: hidden;
                     flex-shrink: 0;">
+            <img src="${fotoParaMostrar}" 
+                 style="width: 100%; height: 100%; object-fit: cover; border-radius: ${borderRadius}; display: block;"
+                 crossorigin="anonymous">
         </div>
     `;
 }
@@ -821,6 +821,9 @@ function generarFormatoProfesional() {
         </head>
         <body>
             <div class="cv-container">
+                <div style="text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid ${colorPrincipal};">
+                    <h2 style="color: ${colorPrincipal}; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 3px;">Síntesis Curricular</h2>
+                </div>
                 <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
                     ${fotoPerfil}
                     <div class="name-title">
@@ -969,6 +972,9 @@ function generarFormatoMinimalista() {
         </head>
         <body>
             <div class="cv-container">
+                <div style="text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid ${colorPrincipal};">
+                    <h2 style="color: ${colorPrincipal}; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 3px;">Síntesis Curricular</h2>
+                </div>
                 <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
                     ${fotoPerfil}
                     <div>
@@ -1106,6 +1112,9 @@ function generarFormatoCreativo() {
         </head>
         <body>
             <div class="cv-container">
+                <div style="text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid ${colorPrincipal};">
+                    <h2 style="color: ${colorPrincipal}; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 3px;">Síntesis Curricular</h2>
+                </div>
                 <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
                     ${fotoPerfil}
                     <div>
@@ -1231,6 +1240,9 @@ function generarFormatoModerno() {
         </head>
         <body>
             <div class="cv-container">
+                <div style="text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid ${colorPrincipal};">
+                    <h2 style="color: ${colorPrincipal}; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 3px;">Síntesis Curricular</h2>
+                </div>
                 <div class="left-column">
                     <div style="text-align: center; margin-bottom: 20px;">
                         ${fotoPerfil}
@@ -1339,6 +1351,9 @@ function generarFormatoClasico() {
         </head>
         <body>
             <div class="cv-container">
+                <div style="text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid ${colorPrincipal};">
+                    <h2 style="color: ${colorPrincipal}; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 3px;">Síntesis Curricular</h2>
+                </div>
                 <div class="header" style="flex-direction: ${fotoPosicion === 'right' ? 'row-reverse' : 'row'};">
                     ${fotoPerfil}
                     <div>
@@ -1881,8 +1896,8 @@ function obtenerImagenRecortada() {
     if (!cropperInstance) return;
     
     cropperInstance.getCroppedCanvas({
-        width: 400,
-        height: 400,
+        width: 800,
+        height: 800,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high'
     }).toBlob((blob) => {
@@ -1915,7 +1930,7 @@ function obtenerImagenRecortada() {
         
         actualizarVistaPrevia();
         cerrarCropModal();
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.95);
 }
 
 // ─── Filtro Mágico con @imgly/background-removal (Local) ───────────────────────
